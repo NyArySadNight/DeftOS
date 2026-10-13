@@ -2,3 +2,8 @@
 *.img
 work/
 cache/
+
+# Kernel packages (release only)
+*.pkg.tar.zst
+*.db
+*.files
