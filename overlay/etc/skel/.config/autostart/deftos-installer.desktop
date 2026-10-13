@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=DeftOS Installer
+Exec=/usr/local/bin/calamares-online.sh
+Terminal=false
+StartupNotify=false
+X-KDE-autostart-delay=5

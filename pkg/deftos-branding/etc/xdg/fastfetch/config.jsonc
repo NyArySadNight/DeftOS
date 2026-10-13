@@ -1,0 +1,33 @@
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "type": "file",
+    "source": "/etc/xdg/fastfetch/deftos_logo.txt",
+    "color": { "1": "cyan" },
+    "padding": { "top": 1, "right": 3 }
+  },
+  "display": {
+    "color": { "keys": "cyan" }
+  },
+  "modules": [
+    "title",
+    "separator",
+    { "type": "os", "key": "OS", "format": "DeftOS (CachyOS Based)" },
+    "host",
+    { "type": "kernel", "key": "Kernel", "format": "DeftOS Software (CachyOS Based)" },
+    "uptime",
+    "packages",
+    "shell",
+    "display",
+    "de",
+    "wm",
+    "terminal",
+    "cpu",
+    "gpu",
+    "memory",
+    "disk",
+    "battery",
+    "break",
+    "colors"
+  ]
+}

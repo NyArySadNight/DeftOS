@@ -1,0 +1,20 @@
+pkgname=deftos-branding
+pkgver=8.3
+pkgrel=1
+pkgdesc="DeftOS branding, configuration, and hooks"
+arch=('any')
+url="https://github.com/yourusername/deftos-build"
+license=('GPL3')
+depends=('filesystem' 'pacman' 'systemd')
+provides=('deftos-branding')
+conflicts=('cachyos-branding')
+install=deftos-branding.install
+
+package() {
+  # Copy entire directory structure, excluding PKGBUILD and .install
+  for dir in etc root usr; do
+    if [[ -d "$dir" ]]; then
+      cp -r "$dir" "$pkgdir/"
+    fi
+  done
+}

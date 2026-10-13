@@ -1,0 +1,13 @@
+[Unit]
+Description=DeftOS: initialise Snapper for / (first boot, Btrfs only)
+ConditionPathExists=!/etc/snapper/configs/root
+ConditionPathExists=/usr/bin/snapper
+After=local-fs.target dbus.service
+Wants=dbus.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/deftos/snapper-init.sh
+
+[Install]
+WantedBy=multi-user.target

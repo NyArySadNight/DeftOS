@@ -1,0 +1,21 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Path
+Target = usr/lib/os-release
+Target = etc/os-release
+Target = etc/lsb-release
+Target = etc/issue
+Target = etc/issue.net
+
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = filesystem
+Target = lsb-release
+
+[Action]
+Description = Re-applying DeftOS branding...
+When = PostTransaction
+Exec = /usr/share/deftos/hooks/restore-branding.sh

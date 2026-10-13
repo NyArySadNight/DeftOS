@@ -1,0 +1,7 @@
+# Cong thuc build DeftOS (khoa phang: key: value)
+name: DeftOS
+base_iso: cachyos-desktop-linux-260809.iso
+base_iso_url: https://mirror.cachyos.org/ISO/desktop/260809/cachyos-desktop-linux-260809.iso
+base_iso_sha256: 959f6577f45e25ee9fd8c220fd221b08e4ea79412c7315c0f922dd6d86d5e33c
+output_iso: deftos-build.iso
+squashfs_level: 3

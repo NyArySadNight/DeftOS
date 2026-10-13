@@ -1,0 +1,13 @@
+NAME="DeftOS"
+PRETTY_NAME="DeftOS"
+ID=deftos
+ID_LIKE="cachyos arch"
+BUILD_ID=rolling
+IMAGE_ID=deftos
+IMAGE_VERSION=2026.10.02
+ANSI_COLOR="38;5;141"
+HOME_URL="https://github.com/DeftOS"
+DOCUMENTATION_URL="https://github.com/DeftOS"
+SUPPORT_URL="https://github.com/DeftOS/DeftOS/issues"
+BUG_REPORT_URL="https://github.com/DeftOS/DeftOS/issues"
+LOGO=deftos

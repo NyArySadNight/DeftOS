@@ -1,0 +1,4 @@
+*.iso
+*.img
+work/
+cache/

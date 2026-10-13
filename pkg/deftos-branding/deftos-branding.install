@@ -1,0 +1,13 @@
+post_install() {
+  if [[ -x /usr/lib/deftos/restore-branding.sh ]]; then
+    /usr/lib/deftos/restore-branding.sh
+  fi
+  echo "DeftOS branding installed successfully"
+}
+
+post_upgrade() {
+  if [[ -x /usr/lib/deftos/restore-branding.sh ]]; then
+    /usr/lib/deftos/restore-branding.sh
+  fi
+  echo "DeftOS branding upgraded"
+}
