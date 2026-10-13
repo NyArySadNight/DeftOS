@@ -28,3 +28,10 @@ install -Dm755 /usr/share/deftos/hooks/restore-branding.sh "$ROOT/usr/share/deft
 if chroot "$ROOT" pacman -Q cachyos-hello >/dev/null 2>&1; then
     chroot "$ROOT" pacman -Rns --noconfirm cachyos-hello
 fi
+
+# Bat service khi cai
+chroot "$ROOT" systemctl enable deftos-snapper-init.service || echo "WARN: enable deftos-snapper-init failed"
+chroot "$ROOT" systemctl enable btrfs-scrub@-.timer || echo "WARN: enable btrfs-scrub timer failed"
+
+# Dung pacman.conf co [deftos] cho cac buoc cai sau (packages@online)
+install -Dm644 /etc/pacman.conf "$ROOT/etc/pacman.conf"

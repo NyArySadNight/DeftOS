@@ -7,3 +7,6 @@ cache/
 *.pkg.tar.zst
 *.db
 *.files
+
+# Python bytecode
+__pycache__/

@@ -92,9 +92,9 @@ def run():
         return "No configuration found", "Aborting due to missing configuration"
 
     if libcalamares.utils.get_target_platform() == "handheld":
-        base_packages += ["linux-cachyos-deckify", "linux-cachyos-deckify-headers"]
+        base_packages += []
     else:
-        base_packages += ["linux-cachyos", "linux-cachyos-headers",
+        base_packages += ["deftos-kernel-cachyos-bore", "deftos-kernel-cachyos-bore-headers",
                          "linux-cachyos-lts", "linux-cachyos-lts-headers"]
 
 
@@ -138,9 +138,9 @@ def run():
     if (is_root_on_zfs):
         base_packages += ["zfs-utils"]
         if libcalamares.utils.get_target_platform() == "handheld":
-            base_packages += ["linux-cachyos-deckify-zfs"]
+            base_packages += []
         else:
-            base_packages += ["linux-cachyos-zfs", "linux-cachyos-lts-zfs"]
+            base_packages += ["linux-cachyos-lts-zfs"]
     elif is_root_on_btrfs:
         libcalamares.utils.debug("Root on BTRFS")
         if bootloader == "limine":

@@ -18,8 +18,8 @@
   critical: true
   platform: "desktop"
   packages:
-     - linux-cachyos
-     - linux-cachyos-headers
+     - deftos-kernel-cachyos-bore
+     - deftos-kernel-cachyos-bore-headers
      - linux-cachyos-lts
      - linux-cachyos-lts-headers
 - name: "CachyOS kernels (hidden/handheld)"
@@ -29,8 +29,6 @@
   critical: true
   platform: "handheld"
   packages:
-     - linux-cachyos-deckify
-     - linux-cachyos-deckify-headers
 - name: "CachyOS Packages"
   description: "needed CachyOS packages"
   hidden: false
