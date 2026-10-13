@@ -6,8 +6,10 @@ This repository contains **build source only**. The resulting ISO is not include
 
 ## Status
 
-- Version: v8.3 (first source snapshot)
-- Installed and booted successfully on real hardware (per the author).
+- Version: v8.3 (first source snapshot). Changes since v8.3 are listed in docs/.
+- Installed and booted successfully on real hardware (per the author) for v8.3.
+- Installer branding fix: committed, not yet tested on a fresh install.
+- Kernel: the BORE kernel package does not yet include CONFIG_SCHED_BORE=y. The installer still installs the CachyOS kernel.
 - Not yet verified: rebuilding this repository produces an ISO equivalent to v8.3. See Verification below.
 
 ## Requirements
@@ -22,17 +24,19 @@ This repository contains **build source only**. The resulting ISO is not include
 
 ```
 DeftOS/
-├── build.sh                 # Main build script
-├── deftos-build.yaml        # Build config (SHA256, compression level)
-├── changed-files.txt        # List of files changed from upstream
-├── overlay/                 # Files copied over the rootfs, keeping original paths
-│   ├── etc/                 # System config, Calamares, skel, systemd
-│   ├── home/liveuser/       # Live user config
-│   └── usr/                 # Scripts, branding, hooks, services
-├── iso-overlay/             # GRUB and syslinux boot menus
-├── patches/                 # Binary patches for cachyos-hello and cachyos-installer
-│   └── apply_bpatch.py
-└── pkg/deftos-branding/     # PKGBUILD for the branding package
+|-- build.sh
+|-- deftos-build.yaml
+|-- changed-files.txt
+|-- overlay/                 # copied over the rootfs, keeping original paths
+|   |-- etc/                 # system config, Calamares, skel, systemd, pacman
+|   |-- home/liveuser/       # live user config
+|   `-- usr/                 # scripts, branding, hooks, services
+|       `-- libexec/deftos/  # apply-branding.sh, run by the installer after pacstrap
+|-- iso-overlay/             # GRUB and syslinux boot menus
+|-- patches/                 # binary patches for cachyos-hello and cachyos-installer
+|-- pkg/deftos-branding/     # PKGBUILD for the branding package
+|-- docs/                    # stage-by-stage history and original README
+`-- .github/workflows/       # build workflow (GitHub Actions)
 ```
 
 ## Build flow (overview)
