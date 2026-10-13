@@ -1,65 +1,66 @@
 # DeftOS
 
-DeftOS là bản ISO dựng trên CachyOS Desktop 260809, với thương hiệu, installer (Calamares) và cấu hình được thay đổi.
+DeftOS is a custom ISO built on CachyOS Desktop 260809, with rebranded identity, a modified installer (Calamares), and changed configuration.
 
-Repo này chỉ chứa **mã nguồn build**. ISO kết quả không nằm trong repo.
+This repository contains **build source only**. The resulting ISO is not included.
 
-## Trạng thái
+## Status
 
-- Phiên bản: v8.3 (snapshot nguồn đầu tiên)
-- Đã cài và boot thành công trên máy thật (theo ghi nhận của tác giả).
-- Chưa xác minh: build lại từ repo này ra ISO tương đương v8.3. Xem mục Kiểm chứng.
+- Version: v8.3 (first source snapshot)
+- Installed and booted successfully on real hardware (per the author).
+- Not yet verified: rebuilding this repository produces an ISO equivalent to v8.3. See Verification below.
 
-## Yêu cầu
+## Requirements
 
-- Linux (Arch / CachyOS), chạy được trong WSL2 nếu có đủ quyền sudo và loop mount
-- Gói: `archiso`, `squashfs-tools`, `xorriso`, `rsync`, `python`
-- ISO gốc `cachyos-desktop-linux-260809.iso`
+- Linux (Arch / CachyOS). Should also work in WSL2 with sudo and loop mounts available.
+- Packages: `archiso`, `squashfs-tools`, `xorriso`, `rsync`, `python`
+- Base ISO `cachyos-desktop-linux-260809.iso`
   - SHA256: `959f6577f45e25ee9fd8c220fd221b08e4ea79412c7315c0f922dd6d86d5e33c`
-- Cần `sudo` (build mount và chroot)
+- `sudo` is required (the build mounts filesystems and uses chroot).
 
-## Cấu trúc
+## Layout
 
 ```
 DeftOS/
-├── build.sh                 # Script build chính
-├── deftos-build.yaml        # Cấu hình build (SHA256, mức nén)
-├── changed-files.txt        # Danh sách file thay đổi so với gốc
-├── overlay/                 # File chép đè vào rootfs, giữ đúng đường dẫn
-│   ├── etc/                 # cấu hình hệ thống, Calamares, skel, systemd
-│   ├── home/liveuser/       # cấu hình người dùng live
-│   └── usr/                 # script, branding, hook, service
-├── iso-overlay/             # Menu boot GRUB và syslinux
-├── patches/                 # Vá nhị phân cachyos-hello, cachyos-installer
+├── build.sh                 # Main build script
+├── deftos-build.yaml        # Build config (SHA256, compression level)
+├── changed-files.txt        # List of files changed from upstream
+├── overlay/                 # Files copied over the rootfs, keeping original paths
+│   ├── etc/                 # System config, Calamares, skel, systemd
+│   ├── home/liveuser/       # Live user config
+│   └── usr/                 # Scripts, branding, hooks, services
+├── iso-overlay/             # GRUB and syslinux boot menus
+├── patches/                 # Binary patches for cachyos-hello and cachyos-installer
 │   └── apply_bpatch.py
-└── pkg/deftos-branding/     # PKGBUILD đóng gói thương hiệu
+└── pkg/deftos-branding/     # PKGBUILD for the branding package
 ```
 
-## Luồng build (tổng quan)
+## Build flow (overview)
 
 ```
-  ISO CachyOS 260809 gốc
+  CachyOS 260809 base ISO
            │
            ▼
    ┌──────────────────┐
-   │ kiểm tra SHA256  │
+   │ verify SHA256    │
    └────────┬─────────┘
             ▼
    ┌──────────────────┐        ┌──────────────────┐
-   │ giải nén         │───────▶│ patches/         │
+   │ extract          │───────▶│ patches/         │
    │ airootfs.sfs     │        │ apply_bpatch.py  │
    └────────┬─────────┘        └────────┬─────────┘
             ▼                           │
    ┌──────────────────┐◀───────────────┘
-   │ chép overlay/    │
+   │ copy overlay/    │
    └────────┬─────────┘
             ▼
    ┌──────────────────┐
-   │ chép iso-overlay/│
+   │ copy iso-overlay/│
    └────────┬─────────┘
             ▼
    ┌──────────────────┐
-   │ nén lại squashfs │
+   │ recompress       │
+   │ squashfs         │
    └────────┬─────────┘
             ▼
    ┌──────────────────┐
@@ -68,40 +69,41 @@ DeftOS/
    └──────────────────┘
 ```
 
-Sơ đồ mô tả thứ tự chung. Chi tiết đúng theo `build.sh`.
+This diagram shows the general order. The exact steps are defined in `build.sh`.
 
-## Cách build
+## How to build
 
 ```bash
 cd DeftOS
-./build.sh /đường/dẫn/tới/cachyos-desktop-linux-260809.iso
+./build.sh /path/to/cachyos-desktop-linux-260809.iso
 ```
 
-Kết quả: `deftos-build.iso` trong thư mục hiện tại. File này bị `.gitignore` loại khỏi repo.
+Output: `deftos-build.iso` in the current directory. This file is excluded from the repository by `.gitignore`.
 
-Lưu ý:
-- File đích phải chưa tồn tại (xorriso không ghi đè).
-- Trước khi build, kiểm tra không còn mount nào trong `work/` (`mount | grep work`).
+Notes:
+- The output file must not already exist (xorriso does not overwrite).
+- Before building, make sure nothing is still mounted under `work/` (`mount | grep work`).
 
-## Kiểm chứng
+## Verification
 
-Build được coi là đúng khi:
-1. SHA256 của ISO gốc khớp.
-2. `build.sh` chạy hết không lỗi.
-3. ISO mới boot được trong VirtualBox.
-4. `/etc/os-release` và `/etc/xdg/fastfetch/deftos_logo.txt` trên hệ thống live khớp với `overlay/`.
+A build is considered correct when:
+1. The base ISO SHA256 matches.
+2. `build.sh` completes without errors.
+3. The new ISO boots in VirtualBox.
+4. `/etc/os-release` and `/etc/xdg/fastfetch/deftos_logo.txt` on the live system match `overlay/`.
 
-Chưa xác minh:
-- Snapshot snapper tự tạo khi cài (`deftos-snapper-init.service`).
-- Rollback từ snapshot và kernel LTS.
-- Hook `95-bootbackup` (đề xuất đổi sang `rsync -ax`).
-- Chuỗi "CachyOS Kernels" còn sót trong slideshow của installer.
+Not yet verified:
+- Snapper snapshot creation at install time (`deftos-snapper-init.service`).
+- Rollback from snapshot and to the LTS kernel.
+- The `95-bootbackup` hook (planned change: switch to `rsync -ax`).
+- Leftover "CachyOS Kernels" text in the installer slideshow.
+- `btrfs-scrub@-.timer` is no longer shipped as a symlink; it must be enabled during installation (see `build.sh` / installer postinstall).
 
-## Ghi chú
+## Notes
 
-- Hai symlink trong `overlay/etc/systemd/system/` trỏ tới đường dẫn tuyệt đối, chỉ đúng khi chạy trên hệ thống đã cài.
-- Repo này không phải bản fork đầy đủ của CachyOS. Khi CachyOS gốc thay đổi, cần kiểm tra lại `patches/`.
+- `overlay/etc/systemd/system/multi-user.target.wants/deftos-snapper-init.service` is a regular file copy of the unit in `overlay/usr/lib/systemd/system/`. Symlinks are avoided so the repository can be checked out on Windows.
+- This is not a full fork of CachyOS. When upstream CachyOS changes, re-check `patches/`.
 
-## Giấy phép
+## License
 
-Chưa xác định. Thành phần từ CachyOS và Arch giữ giấy phép gốc của chúng.
+Not yet determined. Components from CachyOS and Arch keep their original licenses.
