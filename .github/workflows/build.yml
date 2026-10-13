@@ -1,0 +1,62 @@
+name: Build DeftOS ISO
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          swap-storage: false
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download base ISO from CachyOS mirror
+        id: mirror
+        continue-on-error: true
+        run: |
+          curl -fL --retry 3 -o base.iso \
+            https://mirror.cachyos.org/ISO/desktop/260809/cachyos-desktop-linux-260809.iso
+
+      - name: Download base ISO from release fallback
+        if: steps.mirror.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download base-iso --repo "$GITHUB_REPOSITORY" \
+            --pattern 'base.iso.part-*' --dir parts
+          cat parts/base.iso.part-* > base.iso
+
+      - name: Verify base ISO SHA256
+        run: |
+          echo "959f6577f45e25ee9fd8c220fd221b08e4ea79412c7315c0f922dd6d86d5e33c  base.iso" | sha256sum -c -
+
+      - name: Build ISO in privileged Arch container
+        run: |
+          docker run --privileged --rm -v "$PWD:/src" -w /src archlinux:latest bash -c "
+            pacman -Syu --noconfirm archiso squashfs-tools xorriso rsync python &&
+            ./build.sh /src/base.iso
+          "
+
+      - name: Check output
+        run: |
+          test -f deftos-build.iso
+          ls -lh deftos-build.iso
+          sha256sum deftos-build.iso
+
+      - name: Upload DeftOS ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: deftos-build-iso
+          path: deftos-build.iso
+          retention-days: 3
