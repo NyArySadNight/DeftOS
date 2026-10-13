@@ -45,7 +45,7 @@ jobs:
         run: |
           docker run --privileged --rm -v "$PWD:/src" -w /src archlinux:latest bash -c "
             pacman -Syu --noconfirm archiso squashfs-tools xorriso rsync python &&
-            ./build.sh /src/base.iso
+            bash ./build.sh /src/base.iso
           "
 
       - name: Check output
