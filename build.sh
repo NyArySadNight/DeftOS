@@ -23,6 +23,9 @@ mount -o loop,ro "$BASE_ISO" "$WORK/iso"
 unsquashfs -f -d "$WORK/rootfs" "$WORK/iso/arch/x86_64/airootfs.sfs" >/dev/null
 umount "$WORK/iso"
 rsync -rlptD overlay/ "$WORK/rootfs/"
+# Calamares branding: deftos/ needs the image/QML assets shipped in the base ISO's cachyos/ folder
+BR="$WORK/rootfs/usr/share/calamares/branding"
+[ -d "$BR/cachyos" ] && cp -rn "$BR/cachyos/." "$BR/deftos/"
 find overlay/home/liveuser -mindepth 1 2>/dev/null | sed 's|^overlay/||' | while IFS= read -r p; do
   chown 1000:1000 "$WORK/rootfs/$p"
 done
