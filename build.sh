@@ -26,6 +26,10 @@ rsync -rlptD overlay/ "$WORK/rootfs/"
 # Calamares branding: deftos/ needs the image/QML assets shipped in the base ISO's cachyos/ folder
 BR="$WORK/rootfs/usr/share/calamares/branding"
 [ -d "$BR/cachyos" ] && cp -rn "$BR/cachyos/." "$BR/deftos/"
+for f in branding.desc logo.png icon.png welcome.png show.qml; do
+  [ -f "$BR/deftos/$f" ] || { echo "LOI: thieu $BR/deftos/$f - Calamares se khong khoi dong"; exit 1; }
+done
+grep -q '^componentName:[[:space:]]*deftos' "$BR/deftos/branding.desc" || { echo "LOI: componentName trong deftos/branding.desc khong phai deftos"; exit 1; }
 find overlay/home/liveuser -mindepth 1 2>/dev/null | sed 's|^overlay/||' | while IFS= read -r p; do
   chown 1000:1000 "$WORK/rootfs/$p"
 done
