@@ -3,13 +3,13 @@
 set -uo pipefail
 ISO=$(realpath "$1"); OUT=$(realpath -m "$2"); REPO=$(pwd)
 W=$(mktemp -d)
-sudo apt-get install -y squashfs-tools binutils >/dev/null 2>&1
+sudo apt-get install -y squashfs-tools binutils rsync python3-pip >/dev/null 2>&1
 mkdir -p "$W/iso" "$W/rf"
 sudo mount -o loop,ro "$ISO" "$W/iso"
 sudo unsquashfs -f -d "$W/rf" "$W/iso/arch/x86_64/airootfs.sfs" \
   usr/bin/cachyos-installer usr/bin/cachyos-hello usr/local/bin usr/share/polkit-1 etc/polkit-1 \
   etc/sudoers etc/sudoers.d usr/share/applications etc/xdg/autostart etc/skel home/liveuser \
-  etc/os-release usr/lib/os-release etc/version-tag etc/pam.d/sudo >/dev/null 2>&1
+  etc/os-release usr/lib/os-release etc/version-tag etc/pam.d/sudo etc/calamares usr/lib/calamares usr/share/calamares >/dev/null 2>&1
 sudo chown -R "$(id -u)":"$(id -g)" "$W/rf"
 R="$W/rf"
 {
@@ -40,4 +40,15 @@ done
 echo "=== all strings in PATCHED hello/installer containing 'DeftOS' near command-ish text"
 strings -n 4 "$W/p/cachyos-installer" | grep -E 'DeftOS' | head -20
 } > "$OUT" 2>&1
+
+# ---- Gop overlay len ban trich cua ISO goc roi kiem tra cau hinh Calamares ----
+M="$W/merged"; mkdir -p "$M"; sudo cp -a "$R/." "$M/" 2>/dev/null; sudo chown -R "$(id -u)":"$(id -g)" "$M"
+rsync -rlptD "$REPO/overlay/" "$M/"
+[ -d "$M/usr/share/calamares/branding/cachyos" ] && cp -rn "$M/usr/share/calamares/branding/cachyos/." "$M/usr/share/calamares/branding/deftos/"
+pip install -q pyyaml >/dev/null 2>&1
+{
+echo "=== CHECK Calamares (ISO goc + overlay)"
+python3 "$REPO/tools/check-calamares.py" "$M" etc/calamares/settings.conf usr/share/calamares/settings.conf usr/share/calamares/settings_online.conf
+echo "=== settings_online.conf: modules/ trong /etc/calamares sau khi gop"; ls "$M/etc/calamares/modules" | head -80
+} >> "$OUT" 2>&1
 sudo umount "$W/iso"
