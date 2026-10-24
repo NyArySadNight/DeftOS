@@ -1,5 +1,5 @@
-- name: "CachyOS required (hidden)"
-  description: "needed CachyOS packages"
+- name: "DeftOS required (hidden)"
+  description: "needed DeftOS packages"
   hidden: true
   selected: true
   critical: true
@@ -11,8 +11,8 @@
      - cachyos-v4-mirrorlist
      - cachyos-rate-mirrors
      - chwd
-- name: "CachyOS kernels (hidden)"
-  description: "CachyOS kernels to install"
+- name: "DeftOS kernels (hidden)"
+  description: "DeftOS kernels to install"
   hidden: true
   selected: true
   critical: true
@@ -22,15 +22,15 @@
      - deftos-kernel-cachyos-bore-headers
      - linux-cachyos-lts
      - linux-cachyos-lts-headers
-- name: "CachyOS kernels (hidden/handheld)"
-  description: "CachyOS kernels to install (Handheld)"
+- name: "DeftOS kernels (hidden/handheld)"
+  description: "DeftOS kernels to install (Handheld)"
   hidden: true
   selected: true
   critical: true
   platform: "handheld"
   packages:
-- name: "CachyOS Packages"
-  description: "needed CachyOS packages"
+- name: "DeftOS Packages"
+  description: "needed DeftOS packages"
   hidden: false
   selected: true
   critical: true
@@ -38,11 +38,9 @@
      - cachyos-hello
      - cachyos-kernel-manager
      - cachyos-packageinstaller
-     - cachyos-settings
      - cachyos-micro-settings
-     - cachyos-wallpapers
-- name: "CachyOS shell configuration"
-  description: "Shell packages for CachyOS"
+- name: "DeftOS shell configuration"
+  description: "Shell packages for DeftOS"
   hidden: false
   selected: true
   packages:
@@ -125,7 +123,7 @@
           - unrar
           - unzip
       - name: "fonts"
-        description: "CachyOS font selection"
+        description: "DeftOS font selection"
         selected: true
         packages:
           - awesome-terminal-fonts
@@ -370,7 +368,7 @@
   expanded: false
   critical: true
   packages:
-    - cachyos-niri-noctalia
+    - niri
     - sddm
 - name: "Cinnamon"
   description: "Linux desktop which provides advanced innovative features and a traditional user experience."
@@ -614,18 +612,18 @@
     - kitty
     - noctalia-greeter
 - name: "MangoWM"
-  description: "MangoWM is a Wayland compositor using Dank Material Shell through Quickshell, with CachyOS-provided dotfiles."
-  description[de]: "MangoWM ist ein Wayland-Kompositor, der Dank Material Shell über Quickshell verwendet, mit von CachyOS bereitgestellten Dotfiles."
-  description[fi]: "MangoWM on Wayland-kompositori, joka käyttää Dank Material Shelliä Quickshellin kautta, CachyOSin tarjoamilla dotfile-asetuksilla."
-  description[fr]: "MangoWM est un compositeur Wayland utilisant Dank Material Shell via Quickshell, avec des dotfiles fournis par CachyOS."
-  description[it]: "MangoWM è un compositor Wayland che utilizza Dank Material Shell tramite Quickshell, con dotfile forniti da CachyOS."
-  description[es]: "MangoWM es un compositor Wayland que usa Dank Material Shell a través de Quickshell, con dotfiles proporcionados por CachyOS."
-  description[nl]: "MangoWM is een Wayland-compositor die Dank Material Shell via Quickshell gebruikt, met door CachyOS geleverde dotfiles."
-  description[pt_BR]: "MangoWM é um compositor Wayland que usa o Dank Material Shell por meio do Quickshell, com dotfiles fornecidos pelo CachyOS."
-  description[ru]: "MangoWM - это композитор Wayland, использующий Dank Material Shell через Quickshell, с dotfiles, предоставленными CachyOS."
-  description[zh_CN]: "MangoWM 是一个 Wayland 合成器，通过 Quickshell 使用 Dank Material Shell，并提供由 CachyOS 维护的 dotfiles。"
-  description[ja]: "MangoWM は Quickshell 経由で Dank Material Shell を使用する Wayland コンポジタで、CachyOS が提供する dotfiles が含まれています。"
-  description[sv]: "MangoWM är en Wayland-kompositor som använder Dank Material Shell via Quickshell, med dotfiles från CachyOS."
+  description: "MangoWM is a Wayland compositor using Dank Material Shell through Quickshell, with DeftOS-provided dotfiles."
+  description[de]: "MangoWM ist ein Wayland-Kompositor, der Dank Material Shell über Quickshell verwendet, mit von DeftOS bereitgestellten Dotfiles."
+  description[fi]: "MangoWM on Wayland-kompositori, joka käyttää Dank Material Shelliä Quickshellin kautta, DeftOSin tarjoamilla dotfile-asetuksilla."
+  description[fr]: "MangoWM est un compositeur Wayland utilisant Dank Material Shell via Quickshell, avec des dotfiles fournis par DeftOS."
+  description[it]: "MangoWM è un compositor Wayland che utilizza Dank Material Shell tramite Quickshell, con dotfile forniti da DeftOS."
+  description[es]: "MangoWM es un compositor Wayland que usa Dank Material Shell a través de Quickshell, con dotfiles proporcionados por DeftOS."
+  description[nl]: "MangoWM is een Wayland-compositor die Dank Material Shell via Quickshell gebruikt, met door DeftOS geleverde dotfiles."
+  description[pt_BR]: "MangoWM é um compositor Wayland que usa o Dank Material Shell por meio do Quickshell, com dotfiles fornecidos pelo DeftOS."
+  description[ru]: "MangoWM - это композитор Wayland, использующий Dank Material Shell через Quickshell, с dotfiles, предоставленными DeftOS."
+  description[zh_CN]: "MangoWM 是一个 Wayland 合成器，通过 Quickshell 使用 Dank Material Shell，并提供由 DeftOS 维护的 dotfiles。"
+  description[ja]: "MangoWM は Quickshell 経由で Dank Material Shell を使用する Wayland コンポジタで、DeftOS が提供する dotfiles が含まれています。"
+  description[sv]: "MangoWM är en Wayland-kompositor som använder Dank Material Shell via Quickshell, med dotfiles från DeftOS."
   platform: "desktop"
   hidden: false
   selected: false
@@ -667,8 +665,7 @@
   expanded: false
   critical: true
   packages:
-    - cachyos-wayfire-settings
-    - wayfire-desktop-git
+    - wayfire
     - egl-wayland
     - wayland-protocols
     - wofi
@@ -717,7 +714,6 @@
   selected: false
   critical: true
   packages:
-    - cachyos-qtile-settings
     - ttf-nerd-fonts-symbols
     - qtile
     - ttf-cascadia-code
@@ -751,7 +747,6 @@
   selected: false
   critical: true
   packages:
-    - cachyos-picom-config
     - bspwm
     - sxhkd
     - polybar
