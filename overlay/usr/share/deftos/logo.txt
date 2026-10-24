@@ -3,7 +3,7 @@
                  `ooo/         You Like One 
                 `+oooo:      The Custom Kernel ?
                `+oooooo:        Not is DeftOS
-               -+oooooo+:  Made With CachyOS - Arch Based
+               -+oooooo+:  Made With DeftOS - Arch Based
              `/:-:++oooo+:        By MaeAry
             `/++++/+++++++:
            `/++++++++++++++:

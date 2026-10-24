@@ -23,6 +23,18 @@ mount -o loop,ro "$BASE_ISO" "$WORK/iso"
 unsquashfs -f -d "$WORK/rootfs" "$WORK/iso/arch/x86_64/airootfs.sfs" >/dev/null
 umount "$WORK/iso"
 rsync -rlptD overlay/ "$WORK/rootfs/"
+# Script trong overlay phai co quyen thuc thi (git/rsync co the lam mat bit x)
+chmod 755 "$WORK/rootfs/usr/local/bin/calamares-online.sh" \
+          "$WORK/rootfs/usr/libexec/deftos/apply-branding.sh" \
+          "$WORK/rootfs/usr/share/deftos/hooks/restore-branding.sh" \
+          "$WORK/rootfs/usr/lib/deftos/snapper-init.sh"
+# Calamares branding: deftos/ needs the image/QML assets shipped in the base ISO's cachyos/ folder
+BR="$WORK/rootfs/usr/share/calamares/branding"
+[ -d "$BR/cachyos" ] && cp -rn "$BR/cachyos/." "$BR/deftos/"
+for f in branding.desc logo.png icon.png welcome.png show.qml; do
+  [ -f "$BR/deftos/$f" ] || { echo "LOI: thieu $BR/deftos/$f - Calamares se khong khoi dong"; exit 1; }
+done
+grep -q '^componentName:[[:space:]]*deftos' "$BR/deftos/branding.desc" || { echo "LOI: componentName trong deftos/branding.desc khong phai deftos"; exit 1; }
 find overlay/home/liveuser -mindepth 1 2>/dev/null | sed 's|^overlay/||' | while IFS= read -r p; do
   chown 1000:1000 "$WORK/rootfs/$p"
 done

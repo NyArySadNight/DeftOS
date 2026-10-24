@@ -1,8 +1,8 @@
 This ISO is based on ArchLinux ISO modified to provide Installation Environment for [38;2;23;147;209mDeftOS[0m.
-https://cachyos.org
+https://github.com/NyArySadNight/DeftOS
 
-CachyOS Archiso Sources:
-https://github.com/cachyos/cachyos-live-iso
+DeftOS Sources:
+https://github.com/NyArySadNight/DeftOS
 
 ArchLinux ISO Source:
 https://gitlab.archlinux.org/archlinux/archiso
@@ -12,7 +12,7 @@ https://github.com/calamares/calamares
 
 Live environment will start now and let you install [38;2;23;147;209mDeftOS[0m to disk.
 
-Getting help at the forum: https://discuss.cachyos.org
+Getting help: https://github.com/NyArySadNight/DeftOS/issues
 
 Welcome to your [38;2;23;147;209mDeftOS[0m!
 

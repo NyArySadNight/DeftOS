@@ -1,0 +1,34 @@
+name: Inspect base ISO (read-only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download base ISO
+        run: |
+          curl -fL --retry 3 -o base.iso \
+            https://mirror.cachyos.org/ISO/desktop/260809/cachyos-desktop-linux-260809.iso
+
+      - name: Inspect
+        run: bash tools/inspect-base.sh base.iso "$RUNNER_TEMP/report.txt"
+
+      - name: Publish report to branch inspect-report
+        run: |
+          cp "$RUNNER_TEMP/report.txt" /tmp/report.txt
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git checkout --orphan inspect-report
+          git rm -rf . >/dev/null
+          cp /tmp/report.txt report.txt
+          git add report.txt
+          git commit -m "inspect report"
+          git push -f origin inspect-report

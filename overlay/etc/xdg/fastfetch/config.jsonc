@@ -12,9 +12,9 @@
   "modules": [
     "title",
     "separator",
-    { "type": "os", "key": "OS", "format": "DeftOS (CachyOS Based)" },
+    { "type": "os", "key": "OS", "format": "DeftOS" },
     "host",
-    { "type": "kernel", "key": "Kernel", "format": "DeftOS Software (CachyOS Based)" },
+    { "type": "kernel", "key": "Kernel", "format": "DeftOS Software" },
     "uptime",
     "packages",
     "shell",

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Install DeftOS
+Comment=Launch the DeftOS installer directly
+Exec=/usr/local/bin/calamares-online.sh
+Icon=system-software-install
+Terminal=false
+Categories=System;
+StartupNotify=false
