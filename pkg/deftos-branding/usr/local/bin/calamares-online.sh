@@ -9,6 +9,14 @@ exec >>"$LOG" 2>&1
 echo "########## $(basename "$0") started (UTC): $(date -u '+%x %X') as $(id -un) uid=$(id -u)"
 echo "########## DISPLAY=$DISPLAY WAYLAND_DISPLAY=$WAYLAND_DISPLAY XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR"
 
+# Chi cho chay 1 ban: autostart va nut Hello cung goi script nay, 2 ban cung luc se tranh khoa pacman / xoa gnupg cua nhau
+exec 9>/tmp/deftos-installer.lock
+if ! flock -n 9; then
+    echo "########## Installer da dang chay (khoa /tmp/deftos-installer.lock), bo qua lan goi nay"
+    command -v notify-send >/dev/null && notify-send "DeftOS Installer" "Installer dang khoi dong, vui long cho trong giay lat."
+    exit 0
+fi
+
 notify_fail() {
     echo "########## FAIL: $1"
     command -v notify-send >/dev/null && notify-send -u critical "DeftOS Installer" "$1 - xem log: $LOG"
