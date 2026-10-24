@@ -1,0 +1,672 @@
+=== ls usr/local/bin
+total 44
+drwxr-xr-x 2 runner runner 4096 Aug  9 15:47 .
+drwxr-xr-x 3 runner runner 4096 Aug  9 15:47 ..
+-rwxr-xr-x 1 runner runner 1812 Aug  9 15:47 calamares-online.sh
+-rwxr-xr-x 1 runner runner  616 Aug  9 15:47 choose-mirror
+-rwxr-xr-x 1 runner runner 2160 Aug  9 15:47 dmcheck
+-rwxr-xr-x 1 runner runner  850 Aug  9 15:47 nvidia-module-loader
+-rwxr-xr-x 1 runner runner  356 Aug  9 15:47 pkexec-wrapper
+-rwxr-xr-x 1 runner runner  841 Aug  9 15:47 prepare-live-desktop.sh
+-rwxr-xr-x 1 runner runner 1268 Aug  9 15:47 remove-nvidia
+-rwxr-xr-x 1 runner runner 1234 Aug  9 15:47 removeun
+-rwxr-xr-x 1 runner runner 3256 Aug  9 15:47 removeun-online
+=== ls autostart (skel / liveuser / xdg)
+/tmp/tmp.eqwEVTk0nK/rf/etc/skel/.config/autostart:
+total 12
+drwxr-xr-x  2 runner runner 4096 Aug  9 15:47 .
+drwxr-xr-x 11 runner runner 4096 Aug  9 15:47 ..
+-rw-r--r--  1 runner runner 2961 Aug  7 23:09 cachyos-hello.desktop
+
+/tmp/tmp.eqwEVTk0nK/rf/etc/xdg/autostart:
+total 96
+drwxr-xr-x 2 runner runner  4096 Aug  9 15:47 .
+drwxr-xr-x 3 runner runner  4096 Aug  9 15:47 ..
+-rw-r--r-- 1 runner runner   312 Aug  1 19:43 at-spi-dbus-bus.desktop
+-rw-r--r-- 1 runner runner  2414 Jul 14 13:07 baloo_file.desktop
+-rw-r--r-- 1 runner runner  1881 Aug  4 21:54 gmenudbusmenuproxy.desktop
+-rw-r--r-- 1 runner runner  3002 Aug  4 22:39 kaccess.desktop
+-rw-r--r-- 1 runner runner  1673 Aug  4 21:39 kglobalacceld.desktop
+-rw-r--r-- 1 runner runner   173 Jan 16  2026 kxkb2locale1.desktop
+-rw-r--r-- 1 runner runner  2460 May 26 13:38 orca-autostart.desktop
+-rw-r--r-- 1 runner runner  2312 Aug  4 21:54 org.kde.plasma-fallback-session-restore.desktop
+-rw-r--r-- 1 runner runner  1060 Aug  4 21:54 org.kde.plasmashell.desktop
+-rw-r--r-- 1 runner runner  5979 Aug  4 22:06 polkit-kde-authentication-agent-1.desktop
+-rw-r--r-- 1 runner runner  7124 Aug  4 22:04 powerdevil.desktop
+-rw-r--r-- 1 runner runner   211 Sep 28  2025 spice-vdagent.desktop
+-rw-r--r-- 1 runner runner 12831 Dec 13  2025 user-dirs-update-gtk.desktop
+-rw-r--r-- 1 runner runner   371 Jul 21 13:20 vboxclient.desktop
+-rw-r--r-- 1 runner runner   135 Aug  8 18:55 vmware-user.desktop
+-rw-r--r-- 1 runner runner   237 Apr  8  2026 xdg-user-dirs.desktop
+-rw-r--r-- 1 runner runner  1774 Aug  4 21:54 xembedsniproxy.desktop
+
+/tmp/tmp.eqwEVTk0nK/rf/home/liveuser/.config/autostart:
+total 12
+drwxr-xr-x  2 runner runner 4096 Aug  9 15:47 .
+drwxr-xr-x 11 runner runner 4096 Aug  9 15:47 ..
+-rw-r--r--  1 runner runner 2961 Aug  7 23:09 cachyos-hello.desktop
+=== BASE calamares-online.sh
+#!/bin/bash
+
+main() {
+    # Remove current keyring first, to complete initiate it
+    sudo rm -rf /etc/pacman.d/gnupg
+    # We are using this, because archlinux is signing the keyring often with a newly created keyring
+    # This results into a failed installation for the user.
+    # Installing archlinux-keyring fails due not being correctly signed
+    # Mitigate this by installing the latest archlinux-keyring on the ISO, before starting the installation
+    # The issue could also happen, when the installation does rank the mirrors and then a "faulty" mirror gets used
+    sudo pacman -Sy --noconfirm archlinux-keyring cachyos-keyring
+    # Also populate the keys, before starting the Installer, to avoid above issue
+    sudo pacman-key --init
+    sudo pacman-key --populate archlinux cachyos
+    # Also use timedatectl to sync the time with the hardware clock
+    # There has been a bunch of reports, that the keyring was created in the future
+    # Syncing appears to fix it
+    timedatectl set-ntp true
+
+    local progname="$(basename "$0")"
+    local log="/home/liveuser/cachy-install.log"
+    local mode="online"  # TODO: keep this line for now
+
+    local SYSTEM=""
+
+    if [ -d /sys/firmware/efi ]; then
+        SYSTEM="UEFI SYSTEM"
+    else
+        SYSTEM="BIOS/MBR SYSTEM"
+    fi
+
+    local ISO_VERSION="$(cat /etc/version-tag)"
+    echo "USING ISO VERSION: ${ISO_VERSION}"
+
+    sudo pacman -Sy --noconfirm cachyos-calamares-next
+
+    # Get Hardware Informations
+    inxi -F > "$log"
+
+    cat <<EOF >> "$log"
+########## $log by $progname
+########## Started (UTC): $(date -u "+%x %X")
+########## ISO version: $ISO_VERSION
+########## System: $SYSTEM
+EOF
+
+    sudo cp "/usr/share/calamares/settings_${mode}.conf" /etc/calamares/settings.conf
+    exec pkexec-wrapper calamares -D6 >> $log
+}
+
+main "$@"
+=== pkexec-wrapper
+#!/usr/bin/env sh
+exec pkexec env \
+    DISPLAY="$DISPLAY" \
+    HOME="$HOME" \
+    KDE_SESSION_VERSION="$KDE_SESSION_VERSION" \
+    WAYLAND_DISPLAY="$WAYLAND_DISPLAY" \
+    XAUTHORITY="$XAUTHORITY" \
+    XDG_CURRENT_DESKTOP="$XDG_CURRENT_DESKTOP" \
+    XDG_SESSION_TYPE="$XDG_SESSION_TYPE" \
+    dbus-launch "$@"
+#    XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" \
+=== sudoers.d
+total 12
+drwxr-x--- 2 runner runner 4096 Aug  9 15:47 .
+drwxr-xr-x 8 runner runner 4096 Aug  9 15:47 ..
+-r--r----- 1 runner runner   31 Aug  9 15:47 g_wheel
+%wheel ALL=(ALL) NOPASSWD: ALL
+=== polkit rules
+/tmp/tmp.eqwEVTk0nK/rf/etc/polkit-1:
+rules.d
+
+/tmp/tmp.eqwEVTk0nK/rf/etc/polkit-1/rules.d:
+49-nopasswd_global.rules
+
+/tmp/tmp.eqwEVTk0nK/rf/usr/share/polkit-1:
+actions
+policyconfig-1.dtd
+polkitd.conf
+rules.d
+
+/tmp/tmp.eqwEVTk0nK/rf/usr/share/polkit-1/actions:
+io.calamares.calamares.policy
+io.systemd.ask-password.policy
+io.systemd.credentials.policy
+io.systemd.imds.policy
+io.systemd.mount-file-system.policy
+io.systemd.namespace-resource.policy
+io.systemd.storage.policy
+io.systemd.sysext.policy
+net.hadess.SensorProxy.policy
+org.a11y.brlapi.policy
+org.debian.pcsc-lite.policy
+org.freedesktop.ModemManager1.policy
+org.freedesktop.NetworkManager.policy
+org.freedesktop.RealtimeKit1.policy
+org.freedesktop.UDisks2.policy
+org.freedesktop.accounts.policy
+org.freedesktop.bolt.policy
+org.freedesktop.home1.policy
+org.freedesktop.hostname1.policy
+org.freedesktop.import1.policy
+org.freedesktop.locale1.policy
+org.freedesktop.login1.policy
+org.freedesktop.machine1.policy
+org.freedesktop.network1.policy
+org.freedesktop.policykit.examples.pkexec.policy
+org.freedesktop.policykit.policy
+org.freedesktop.portable1.policy
+/* Allow members of the wheel group to execute any actions
+ * without password authentication, similar to "sudo NOPASSWD:"
+ */
+polkit.addRule(function(action, subject) {
+    if (subject.isInGroup("wheel")) {
+        return polkit.Result.YES;
+    }
+});
+
+=== installer/hello desktop files
+cachyos-hello.desktop
+--- /tmp/tmp.eqwEVTk0nK/rf/usr/share/applications/*install*.desktop
+grep: /tmp/tmp.eqwEVTk0nK/rf/usr/share/applications/*install*.desktop: No such file or directory
+--- /tmp/tmp.eqwEVTk0nK/rf/usr/share/applications/cachyos-hello.desktop
+[Desktop Entry]
+Terminal=false
+Type=Application
+Categories=GNOME;GTK;System;
+StartupNotify=false
+Name=CachyOS Hello
+Exec=/usr/bin/cachyos-hello
+Icon=org.cachyos.hello
+StartupWMClass=org.cachyos.hello
+Comment=A tool providing access to documentation and support for new CachyOS users.
+=== os-release (base)
+NAME="Arch Linux"
+PRETTY_NAME="Arch Linux"
+ID=arch
+BUILD_ID=rolling
+ANSI_COLOR="38;2;23;147;209"
+HOME_URL="https://archlinux.org/"
+DOCUMENTATION_URL="https://wiki.archlinux.org/"
+SUPPORT_URL="https://bbs.archlinux.org/"
+BUG_REPORT_URL="https://gitlab.archlinux.org/groups/archlinux/-/issues"
+PRIVACY_POLICY_URL="https://terms.archlinux.org/docs/privacy-policy/"
+LOGO=archlinux-logo
+=== strings: cachyos-installer (filtered)
+  CachyOS Installer  
+# Author: diegons490 (https://github.com/diegons490/cachyos-limine-theme)
+# CachyOS Limine theme
+# Managed by CachyOS installer.
+# press ESC key to display menu.
+-cachyosH
+-cachyosH1
+.shstrtab
+/etc/NetworkManager/system-connections
+/etc/hostid
+/etc/macH
+/etc/machine-id
+/etc/passwd
+/etc/zfs/zpool.cache
+/tmp/cachyos-installer-pacman.conf
+/tmp/pkg/src/cachyos-cli-installer-new/src/tui.cpp
+/usr/bin/arch-chroot
+/usr/bin/bash
+/usr/bin/cachyos-rate-mirrors
+/usr/bin/fish
+/usr/bin/pacman
+/usr/bin/systemctl
+/usr/bin/zsh
+/usr/binH
+/usr/share/wallpapers/cachyos-wallpapers/limine-splash.png
+/usr/share/zoneinfo
+/usr/src/debug/gcc/gcc-build/x86_64-pc-linux-gnu/libstdc++-v3/include/array
+/usr/src/debug/gcc/gcc-build/x86_64-pc-linux-gnu/libstdc++-v3/include/bit
+/usr/src/debug/gcc/gcc-build/x86_64-pc-linux-gnu/libstdc++-v3/include/bits/basic_string.h
+/usr/src/debug/gcc/gcc-build/x86_64-pc-linux-gnu/libstdc++-v3/include/bits/cow_string.h
+/usr/src/debug/gcc/gcc-build/x86_64-pc-linux-gnu/libstdc++-v3/include/bits/fs_path.h
+/usr/src/debug/gcc/gcc-build/x86_64-pc-linux-gnu/libstdc++-v3/include/bits/shared_ptr_base.h
+/usr/src/debug/gcc/gcc-build/x86_64-pc-linux-gnu/libstdc++-v3/include/bits/std_mutex.h
+/usr/src/debug/gcc/gcc-build/x86_64-pc-linux-gnu/libstdc++-v3/include/bits/stl_deque.h
+/usr/src/debug/gcc/gcc-build/x86_64-pc-linux-gnu/libstdc++-v3/include/bits/stl_stack.h
+/usr/src/debug/gcc/gcc-build/x86_64-pc-linux-gnu/libstdc++-v3/include/bits/stl_vector.h
+/usr/src/debug/gcc/gcc-build/x86_64-pc-linux-gnu/libstdc++-v3/include/bits/unique_ptr.h
+/usr/src/debug/gcc/gcc-build/x86_64-pc-linux-gnu/libstdc++-v3/include/charconv
+/usr/src/debug/gcc/gcc-build/x86_64-pc-linux-gnu/libstdc++-v3/include/shared_mutex
+/usr/src/debug/gcc/gcc-build/x86_64-pc-linux-gnu/libstdc++-v3/include/string_view
+A CachyOS Base has already been installed on this partition.
+A CachyOS Base is not installed on this partition.
+CachyOS installer version '{}'
+CachyOS {} Repo added to {}
+Failed to add CachyOS {} repo to {}
+Failed to create /etc/zfs directory: {}
+Failed to create user {}! User default groups doesn't contain sudoers group({})
+Failed to enable display manager '{}': {}
+Failed to fetch latest cachyos-rate-mirrors. Continuing..
+Failed to install cachyos repos: {}
+Failed to install cachyos-wallpapers: {}
+Failed to open sudoers for writing {}
+Failed to set permissions for sudoers file: {}
+Failed to umount partitions: failed to parse /etc/mtab
+Grub efi binary status:(EFI/cachyos/grubx64.efi): {}
+Include = /etc/pacman.d/cachyos-mirrorlist
+Include = /etc/pacman.d/cachyos-v3-mirrorlist
+Include = /etc/pacman.d/cachyos-v4-mirrorlist
+Install Display Driver
+Installer must be launched with root privileges!
+NSt6thread11_State_implINS_8_InvokerISt5tupleIJZN4gucc5utils13ProcessRunner4Impl6launchESt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaISD_EERKNS4_10RunOptionsEE3$_0EEEEEE
+No display manager units found on target yet. Skipping DM enablement..
+Ranked CachyOS mirrors
+Select Display Driver
+The CachyOS base must be installed first.
+This is where CachyOS will be installed.
+Usage: cachyos-installer [--config <path>] [--dry-run] [--version]\n\n"
+Welcome to the CachyOS Installer
+ZN4gucc5utils13ProcessRunner4Impl6launchESt6vectorINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESaIS9_EERKNS0_10RunOptionsEE3$_1
+ZN7cachyos9installer3runERNS0_14InstallContextERKNS0_14SystemSettingsERKNS0_12UserSettingsESt17basic_string_viewIcSt11char_traitsIcEERKNS0_14InstallSessionEE3$_0
+[cachyos-core-v3]
+[cachyos-core-v4]
+[cachyos-core-znver4]
+[cachyos-extra-v3]
+[cachyos-extra-v4]
+[cachyos-extra-znver4]
+[cachyos-v3]
+[cachyos-v4]
+[cachyos-znver4]
+[cachyos]
+autologin requested but no display manager is installed on the target
+bash -c 'pacman-key --init;pacman-key --populate archlinux cachyos;pacman-key --refresh-keys;'
+cachyos-bootanimation
+cachyos-installer {}
+cachyos-snapper-support not installed, skipping
+cachyos-v3
+cachyos-v4
+cachyos-wallpapers
+cachyos-znver4
+cachyos-{}-config
+cachyos_H
+cachyos_logger
+cat /etc/locale.gen 2>/dev/null
+chwd --pmcachedir '{}' --pmroot {} -f -i {} 2>>/tmp/cachyos-install.log 2>&1
+display_manager: enabled '{}'
+display_manager: failed to enable '{}'
+display_manager: failed to write {}
+display_manager: lightdm greeter set to '{}'
+display_manager: unit '{}' not present on target, skipping enable
+display_manager: {} absent, skipping greeter config
+echo 'ZPOOL_VDEV_NAME_PATH=YES' >> {}/etc/environment
+failed to install cachyos keyring: {}
+failed to set permissions for sudoers file: {}
+failed to write sudoers file {}
+file /mnt/etc/systemd/system/display-manager.service 2>/dev/null | awk -F'/' '{print $NF}' | cut -d. -f1
+file:///var/lib/cachyos-installer/net-profiles.toml
+file:///var/lib/cachyos-installer/server-profiles.toml
+grep -qv '^#' {}/etc/fstab 2>/dev/null
+grub_installer.sh: {}
+https://cachyos.org
+https://raw.githubusercontent.com/CachyOS/New-Cli-Installer/master/net-profiles.toml
+https://raw.githubusercontent.com/CachyOS/New-Cli-Installer/master/server-profiles.toml
+install_cachyos_repo: repo_list := '{}'
+install_cachyos_repo: {}
+is_zen45: display family=0x{:X} ({}), display model=0x{:X} ({})
+linux-cachyos
+linux-cachyos-bore
+linux-cachyos-eevdf
+linux-cachyos-hardened
+linux-cachyos-lts
+=== strings: cachyos-hello (filtered)
+    "installer_path": "/usr/bin/calamares",
+    "live_path": "/run/archiso",
+ Calamares
+ DNSPod (Tencent)control stream was closedsecond settings frame receivedthis cannot be Nonegot two control streamsgot two encoder streamsgot two decoder streamsautostart_pathdesktop_pathautostartlabeldevelopmentdonatefirstcategoryforuminstalllabelreadmereleasesecondcategorythirdcategorywelcomelabelwelcometitletooltip_textchild not foundbutton-web-resource-tooltipbutton-about-tooltipabout-dialog-titleabout-dialog-comments0.28.1Vladislav Nepogodin2021-2026 CachyOS teamhttps://github.com/cachyos/cachyos-welcome/org/cachyos/helloError initializing gtk css provider.Could not get the object windowCould not get the headerbarlogo_path/usr/bin/nmcliexternal-link-symbolicorg.freedesktop.NetworkManagerorg.freedesktop.NetworkManager.Device/org/freedesktop/NetworkManager/Settingsorg.freedesktop.NetworkManager.Settings/org/freedesktop/NetworkManagerorg.freedesktop.NetworkManager.Connection.Activeorg.freedesktop.NetworkManager.Settings.Connectionorg.kde.KWin/KWincan not lookup IPs for no names<unknown time>client received a server-initiated bidirectional streamStream type not resolved yetSession ID not resolved yetplaindotdohrequestor canceledid space exhausted, consider filing an issueAvailable Tweaks Status:
+ Installer finished with status: 
+ installere Desktop-utgaven p
+ installere p
+ jour un noyau 3.18 en version 4.1, chwd-kernel va installer le noyau en 4.1 et porter tous les modules existants vers la nouvelle version. Pas mal non ?
+ launched successfully.
+ per al Calamares
+ quick launch (CachyOS apps)
+# Main Page (launch installer)
+$Failed to launch kwin debug window: 
+(uuay)https://cachyos.org8.8.8.81.1.1.19.9.9.92001:4860:4860::88882606:4700:4700::11112620:fe::feoffline-error/sbin/pingdesktopFailed to parse profilesunsupported-hw-warningdesktop-on-handheld-error/usr/local/bin/calamares-online.shFailed to spawn installerFailed to waiting for childtestinghttps://cachyos.org/versions.jsontesting-iso-warningoutdated-version-warninglive_pathinstaller_pathdnsConnectionsBrowserpagedns-type-plaindns-type-dotdns-type-dohdns-type-doq
+/tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/subprocess-1.2.1/src/spawn.rs
+ClientExtensionsUnrecognisedNameAcceptedFinishedSpawnFileInvalid
+FailedServiceUnknownNameHasNoOwnerNoReplyIOErrorBadAddressNotSupportedLimitsExceededAccessDeniedAuthFailedTimeoutNoNetworkAddressInUseDisconnectedInvalidArgsFileNotFoundFileExistsUnknownMethodUnknownObjectUnknownPropertyMatchRuleNotFoundSpawnExecFailedSpawnForkFailedSpawnChildSignaledSpawnFailedSpawnFailedToSetupSpawnConfigInvalidSpawnServiceNotValidSpawnServiceNotFoundSpawnPermissionsInvalidSpawnNoMemoryUnixProcessIdUnknownInvalidFileContentSELinuxSecurityContextUnknownAdtAuditDataUnknownObjectPathInUseInconsistentMessageNotContainerMaybeDone polled after value takenPoisonErrora struct, array, u8 or variantInterfaceNotFoundAddressInputOutputInvalidFieldExcessDataNamesIncorrectEndianHandshakeInvalidReplyMethodErrorMissingFieldInvalidGUIDUnsupportedFDONameTakenFailureInvalidSerialInterfaceExistsSendError(..)U8I16U16I32U32I64U64F64SignatureFdkeyMethodCallMethodReturnpath_specarg_pathsarg0nsMatchRuleMessageIncorrectTypePaddingNot0UnknownFdMissingFramingOffsetIncompatibleFormatSignatureMismatchOutOfBoundsSignatureParseEmptyStructureInvalidObjectPathAcquireErrorEmptyInvalidDigitPosOverflowNegOverflowNotAPowerOfTwoPathNamespaceOwned()ErrOwnedGuidNoReplyExpectedNoAutoStartAllowInteractiveAuthdescription() is deprecated; use DisplayInvalid error name. See https://dbus.freedesktop.org/doc/dbus-specification.html#message-protocol-names-errorInvalid member name. See https://dbus.freedesktop.org/doc/dbus-specification.html#message-protocol-names-memberorg.freedesktop.DBusInvalid unique name. See https://dbus.freedesktop.org/doc/dbus-specification.html#message-protocol-names-busInvalid interface name. See https://dbus.freedesktop.org/doc/dbus-specification.html#message-protocol-names-interfaceBusName::UniqueBusName::WellKnownOwnedErrorNameOwnedUniqueNameInvalid bus name. See https://dbus.freedesktop.org/doc/dbus-specification.html#message-protocol-names-busorg.freedesktop.systemd1/org/freedesktop/systemd1org.freedesktop.systemd1.UnitFollowingUnitFileStateUnitFilePresetMarkersDebugInvocationEnvironmentControlGroupLogTargetNNamesNJobsNInstalledJobsNFailedJobsTransactionsWithOrderingCycleShowStatusWatchdogLastPingTimestampWatchdogLastPingTimestampMonotonicRuntimeWatchdogUSecRuntimeWatchdogPreUSecRuntimeWatchdogPreGovernorRebootWatchdogUSecKExecWatchdogUSecSystemStateDefaultTimeoutAbortUSecDefaultTasksMaxDefaultMemoryPressureThresholdUSecDefaultMemoryPressureWatchDefaultCPUPressureThresholdUSecDefaultCPUPressureWatchDefaultIOPressureThresholdUSecDefaultIOPressureWatchReloadCount
+Launching 
+NameAcquiredRequestNameGSource closure called after returning glib::ControlFlow::BreakFailed to upgrade builderTLS connect timeoutno tasks successful`NameLost` signal stream closed`NameAcquired` signal stream closedall futures in select! were completed, but no `complete =>` handler was providedstopping verification cycle in verify_default_rrseterror when creating settings framesetting retry_intervalh3 connection failed to closeall branches are disabled and there is no else branchcachyos-pi not foundFailed to spawn processremoving ip from response: answer filter matchedpath should be valid utf-8connectingno encrypted connection configs available for probingopportunistic encrypted probe attempt failednot caching DNSSEC validation with ProofErrorKind::Netresponse contains wildcard RRSIGs, but no NSEC/NSEC3s are present.marking zone as insecure based on secure NSEC/NSEC3 proof or insecure parent zonevalidating rrset with dnskeysignoring DS lookup for root zone or registered keysAll other RRSETs must use verify_default_rrsetall dnskeys use unsupported algorithms and there are no supported DS records in the parent zonebogus validation: missing dnskeys, but have ds recordsno dnskey founddefault rrset validationDNSKEYs must be validated with verify_dnskey_rrsetInterface was added but not foundrecording cancelled parallel servertruncated response received, retrying over TCPreceived truncated responseInterfacesAddedActiveStatea shard can only be inserted by the thread that owns it, this is a bug!h3doqUnexpected end parsing varintGetSettingsReapplyprobe connection succeededprobe connection failedprobe query succeededprobe query failedListConnectionsListUnitFilesByPatternsGetUnitActiveConnectionsDevicescachyos_helloError while loading fallback languageEnableUnitFilesStartUnitRestartUnitexample.com.
+OS can't spawn worker thread: 
+Perform common system maintenance and repair tasksEnable or disable tweaksConfigure DNS settings for network connectionsLaunch associated `CachyOS` applicationsrecordsrrsigsRecordSetOwnedReadHalfErrorLineCannotFindBinaryPathCannotGetCurrentDirAndPathListEmptyCannotCanonicalizead-guard-familycloudflarecloudflare-malwarecloudflare-malware-adultdns-watchf-fmucg-coregooglequad9yandexyandex-malwareyandex-malware-adultali-dnstencentOwnedWriteHalfFixArgsFinishedEarlyReadErrorToStrError_privself.incoming_bi BoxStream never returns Noneself.incoming_uni BoxStream never returns None
+Proxy-Authorization: sending connection error to error channelhttp2 handshake complete, spawning background dispatcher taskhttp1 handshake complete, spawning background dispatcher taskwaiting for connection to be readyconnection is readyconnection channel closed, checking for connection errorerror channel closed, returning the vague ChannelClosed errorInvalid Server Namereqwest::blocking::clientALPN upgraded to HTTP/2ALPN negotiated h2, updating poolauthority implies hosturi host is valid header valuenot droppedenvelope not droppedconnection was not readydispatch dropped without returning errortunneling HTTPS over proxyconnect local must have socket pathinvalid TLS versionsinvalid TLS verification settingsinvalid SETTINGS frameassertion failed: !stream_id.is_zero()Connection is HTTP/1, but request requires HTTP/2Network unreachabletcp connect errorpool closed, canceling idle intervalidle interval checking for expiredtx only taken on error
+SpawnChildExitedInvalidSignature
+Updating system...Reinstalling all native packages...Resetting pacman keyrings...Clearing package cache...Removing orphan packages...Ranking mirrors...Installing CachyOS gaming packages...Attempting to launch KWin debug console...Installing Winboat...Installing VRAM management packages...CachyOS Package Installercachyos-piCachyOS Kernel Managercachyos-kernel-manageren_USfailed to fallbackdnsdns-priorityignore-auto-dnsdns-over-tlsfailed conversion to OwnedValuefailed to run cmdWARNING
+appbrowser-label = Installer Applikasjoner
+appbrowser-label = Installer des Applications
+appbrowser-label = Installera program
+appbrowser-label = Programma's installeren
+button-installer-label = 
+button-installer-label = Abiarazi instalatzailea
+button-installer-label = Ejecutar instalador
+button-installer-label = Fillo instaluesin
+button-installer-label = Inicia'n l'instal
+button-installer-label = Iniciar instalador
+button-installer-label = Instalar CachyOS
+button-installer-label = Installatiewizard starten
+button-installer-label = Installation starten
+button-installer-label = Installer-
+button-installer-label = K
+button-installer-label = Kurucuyu ba
+button-installer-label = Lancer l'installateur
+button-installer-label = Lancia l'installer
+button-installer-label = Lanseer installeerder
+button-installer-label = Launch installer
+button-installer-label = Paleisti diegykl
+button-installer-label = Qura
+button-installer-label = Spusti
+button-installer-label = Spustit instal
+button-installer-label = Start installasjonsprogrammet
+button-installer-label = Starta installeraren
+button-installer-label = Telep
+button-installer-label = Uruchom instalator
+button-installer-label = m
+calamares-install-type = 
+calamares-install-type = Calamares 
+calamares-install-type = Calamares diegimo tipas
+calamares-install-type = Calamares instalazio mota
+calamares-install-type = Calamares install type
+calamares-install-type = Calamares installasjonstype
+calamares-install-type = Calamares installationstyp
+calamares-install-type = Calamares installeer tipe
+calamares-install-type = Calamares kurulum tipi
+calamares-install-type = Calamares qura
+calamares-install-type = Calamares telep
+calamares-install-type = Calamares'i paigalduse t
+calamares-install-type = Calamares-
+calamares-install-type = Calamares-installatietype
+calamares-install-type = Lloji i instalimit Calamares
+calamares-install-type = Tipo de instala
+calamares-install-type = Tipo de instalaci
+calamares-install-type = Tipo di installazione Calamares
+calamares-install-type = Tipus d'instal
+calamares-install-type = Typ Instalace Calamares
+calamares-install-type = Typ in
+calamares-install-type = Typ instalacji Calamares
+calamares-install-type = Type d'installion Calamares
+cie Calamares
+current header namesize overflows MAX_SIZEpoll_completewritinginvalid framereclaimedwasn't expecting a frame to reclaimnot reclaiming frame for cancelled streamremoving dangling stream from pending_senddata framestream capacity is 0sending data frameinvalid RST_STREAM frameinvalid WINDOW_UPDATE frameunexpected flow control stateassertion failed: dst.remaining_mut() >= lenunexpected EOF during chunk size lineInvalid chunk size line: missing size digitinvalid chunk size: overflowchunk trailers bytes over limitInvalid chunk end LFInvalid chunk body CRInvalid chunk body LFInvalid chunk size LFtrailers_buf is NoneInvalid chunk size linear white spaceinvalid chunk extension contains newlinechunk extensions over limitchunk trailers count overflowInvalid trailer end LFInvalid chunk size line: Invalid Sizeconnection error PROTOCOL_ERROR -- recv_reset: invalid stream ID 0;connection error PROTOCOL_ERROR -- recv_push_promise: initiating stream is in an invalid state;connection error PROTOCOL_ERROR -- recv_push_promise: initiating stream is not opened;connection closed because of a broken pipeStreams::recv_eofassertion failed: sz <= super::MAX_WINDOW_SIZE as usizeOut of bounds accessassertion failed: N::next(&stream).is_none()a spawned task panicked and the runtime is configured to shut down on unhandled panicdns errorassertion failed: slot.next.is_none()too_many_internal_resets
+desktop-on-handheld-error = U probeert de Desktop-editie te installeren op een draagbaar apparaat. Gebruik alstublieft de Handheld-editie voor goede ondersteuning op deze hardware
+desktop-on-handheld-error = Vous tentez d\'installer l\'
+event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/mod.rs:926message/tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/mod.rsevent /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/object_server/mod.rs:470zbus::object_server/tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/object_server/mod.rsevent /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/object_server/mod.rs:473event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/object_server/mod.rs:433event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/object_server/mod.rs:435event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/socket_reader.rs:62zbus::connection::socket_reader/tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/socket_reader.rsevent /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/socket_reader.rs:72event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/socket_reader.rs:102event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/socket_reader.rs:109event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/socket_reader.rs:115event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/socket_reader.rs:66event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/handshake/client.rs:88zbus::connection::handshake::client/tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/handshake/client.rsevent /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/handshake/client.rs:98event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/handshake/client.rs:130event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/handshake/client.rs:161event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/handshake/client.rs:165event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/handshake/common.rs:141zbus::connection::handshake::common/tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/handshake/common.rsevent /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/handshake/common.rs:102event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/proxy/mod.rs:403zbus::proxy/tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/proxy/mod.rsevent /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/mod.rs:907event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/mod.rs:923event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/mod.rs:944event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/mod.rs:956event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/mod.rs:964event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/mod.rs:914event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/mod.rs:621event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/mod.rs:635event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/mod.rs:632event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/mod.rs:682event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/mod.rs:685event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/handshake/client.rs:182event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/handshake/client.rs:195dispatch_callmsghdrevent /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/object_server/mod.rs:338event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/object_server/mod.rs:353event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/object_server/mod.rs:355event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/object_server/mod.rs:340{}task_nameread_socketsocket readerauthenticatesend_secondary_commandsreceive_secondary_responsesexpected_n_responsesread_commandread_commandsn_commandswrite_commandcommandwrite_commandsextra_byteskeep_updatedevent /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/proxy/mod.rs:301event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/proxy/mod.rs:317event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/mod.rs:891obj_server_taskevent /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/mod.rs:561monitor_name_acquiredmonitor_name_lostevent /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/proxy/mod.rs:1217event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/socket/mod.rs:270zbus::connection::socket/tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/socket/mod.rsevent /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/socket/mod.rs:287performevent /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/proxy/mod.rs:431event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/proxy/mod.rs:447event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/proxy/mod.rs:453event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/proxy/mod.rs:460event /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/proxy/mod.rs:437newstart_object_serverstarted_eventevent /tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/socket/unix.rs:432zbus::connection::socket::unix/tmp/pkg/src/cachyos-hello/build/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-5.18.0/src/connection/socket/unix.rsBitFlags<Flags>invalid seek to a negative or overflowing positioninexistent propertya tuple of size 2a tuple of size 3a mapa sequencesendermemberpath_namespaceerrormethod_callmethod_returnsignalInterface not foundinvalid message fieldInvalid D-Bus method replyno detailsA required field is missing from message headersInvalid GUIDConnection support is lackingInvalid match rule stringSerial number in the message header is 0Msgserialreply-serialifacefdsorg.freedesktop.zbus.Errororg.freedesktop.DBus.Error.Failedorg.freedesktop.DBus.Error.NoMemoryorg.freedesktop.DBus.Error.ServiceUnknownorg.freedesktop.DBus.Error.NameHasNoOwnerorg.freedesktop.DBus.Error.NoReplyorg.freedesktop.DBus.Error.IOErrororg.freedesktop.DBus.Error.BadAddressorg.freedesktop.DBus.Error.NotSupportedorg.freedesktop.DBus.Error.LimitsExceededorg.freedesktop.DBus.Error.AccessDeniedorg.freedesktop.DBus.Error.AuthFailedorg.freedesktop.DBus.Error.NoServerorg.freedesktop.DBus.Error.Timeoutorg.freedesktop.DBus.Error.NoNetworkorg.freedesktop.DBus.Error.AddressInUseorg.freedesktop.DBus.Error.Disconnectedorg.freedesktop.DBus.Error.InvalidArgsorg.freedesktop.DBus.Error.FileNotFoundorg.freedesktop.DBus.Error.FileExistsorg.freedesktop.DBus.Error.UnknownMethodorg.freedesktop.DBus.Error.UnknownObjectorg.freedesktop.DBus.Error.UnknownInterfaceorg.freedesktop.DBus.Error.UnknownPropertyorg.freedesktop.DBus.Error.PropertyReadOnlyorg.freedesktop.DBus.Error.TimedOutorg.freedesktop.DBus.Error.MatchRuleNotFoundorg.freedesktop.DBus.Error.MatchRuleInvalidorg.freedesktop.DBus.Error.Spawn.ExecFailedorg.freedesktop.DBus.Error.Spawn.ForkFailedorg.freedesktop.DBus.Error.Spawn.ChildExitedorg.freedesktop.DBus.Error.Spawn.ChildSignaledorg.freedesktop.DBus.Error.Spawn.Failedorg.freedesktop.DBus.Error.Spawn.FailedToSetuporg.freedesktop.DBus.Error.Spawn.ConfigInvalidorg.freedesktop.DBus.Error.Spawn.ServiceNotValidorg.freedesktop.DBus.Error.Spawn.ServiceNotFoundorg.freedesktop.DBus.Error.Spawn.PermissionsInvalidorg.freedesktop.DBus.Error.Spawn.FileInvalidorg.freedesktop.DBus.Error.Spawn.NoMemoryorg.freedesktop.DBus.Error.UnixProcessIdUnknownorg.freedesktop.DBus.Error.InvalidSignatureorg.freedesktop.DBus.Error.InvalidFileContentorg.freedesktop.DBus.Error.SELinuxSecurityContextUnknownorg.freedesktop.DBus.Error.AdtAuditDataUnknownorg.freedesktop.DBus.Error.ObjectPathInUseorg.freedesktop.DBus.Error.InconsistentMessageorg.freedesktop.DBus.Error.InteractiveAuthorizationRequiredorg.freedesktop.DBus.Error.NotContainerchild stdin not foundchild stdout not foundANONYMOUSCANCELBEGINERRORNEGOTIATE_UNIX_FDOKAGREE_UNIX_FD[internal exception] blocking task ran twice.Method callMethod returnSignal
+event src/pages/mod.rs:345cachyos_hello::pagesevent src/networkmanager.rs:124cachyos_hello::networkmanagersrc/networkmanager.rsevent src/pages/mod.rs:413event src/installer.rs:209cachyos_hello::installerevent src/installer.rs:214src/main.rsevent src/main.rs:273event src/main.rs:93event src/systemd_units.rs:44cachyos_hello::systemd_unitssrc/systemd_units.rsevent src/systemd_units.rs:35event src/window.rs:283cachyos_hello::windowsrc/window.rsevent src/window.rs:352event src/window.rs:385event src/networkmanager.rs:173event src/actions.rs:44cachyos_hello::actionssrc/actions.rsevent src/actions.rs:246event src/actions.rs:136event src/installer.rs:138event src/installer.rs:180event src/installer.rs:186event src/installer.rs:181CurrentPsdAnanicyCachyUpdateerror code VarIntUnable to allocate another spansending messagebizarre we just made this messageerror messagestruct VersionsSetLoggerErrorValueTypeMismatchErroractualWrongValueTypeUnexpectedNonecachyos-hellothe following required argument was not provided: connectionthe following required argument was not provided: serverthe following required argument was not provided: dotthe following required argument was not provided: dohthe following required argument was not provided: doqset-customthe following required argument was not provided: ipv4the following required argument was not provided: ipv6dot_hostnamethe following required argument was not provided: dot_hostnamedoh_urlthe following required argument was not provided: doh_urldoq_endpointthe following required argument was not provided: doq_endpointlist-serversTokioRuntimeerror decoding messagestream closedNetwork connection name (use 'list-connections' to see available)SERVERDNS provider to use (use 'list-servers' to see available)DOTEnable DNS over TLS (`DoT`) for the connection (requires server support)DOHEnable DNS over HTTPS (`DoH`) via blocky local proxy (requires server support)DOQEnable DNS over QUIC (`DoQ`) via blocky local proxy (requires server support)Set a DNS provider for a network connectionSetCustomIPv4 DNS addresses (comma-separated, e.g. "1.1.1.1,1.0.0.1")ADDRSIPv6 DNS addresses (comma-separated)Enable DNS over TLS (`DoT`)`DoT` hostname for SNI (e.g. "dns.example.com")dot-hostnameEnable DNS over HTTPS (`DoH`) via blocky local proxy`DoH` URL (e.g. "<https://dns.example.com/dns-query>")doh-urlURLEnable DNS over QUIC (`DoQ`) via blocky local proxy`DoQ` endpoint (e.g. "quic:dns.example.com")doq-endpointSet a custom DNS server for a network connectionReset DNS settings for a network connection to automatic (DHCP)List available network connections managed by `NetworkManager`List available third-party DNS providersTest latency to all DNS serverspsdProfile Sync DaemonSystemd OOMD servicebpftune`BPFtune` servicebluetoothBluetooth serviceananicyAnanicy Cpp service`CachyOS` update notifierHelloWindowbuilderpreferencesfuture still here when droppingMemorySystemNotADirWrongArgsDiskSpaceHandleNullHandleNotNullHandleLockDbOpenDbNullDbNotNullDbNotFoundDbInvalidDbInvalidSigDbVersionDbWriteServerBadUrlServerNoneTransNotNullTransNullTransDupTargetTransNotInitializedTransAbortTransTypeTransNotLockedTransHookFailedPkgNotFoundPkgIgnoredPkgInvalidPkgInvalidChecksumPkgInvalidSigPkgMissingSigPkgOpenPkgCantRemovePkgInvalidNamePkgInvalidArchSigMissingSigInvalidUnsatisfiedDepsConflictingDepsFileConflictsRetrievePrepareInvalidRegexLibarchiveLibcurlGpgmeMissingCapabilitySignaturesCliVladislav Nepogodin <nepogodin.vlad@gmail.com>CachyOS Welcome ScreenDnsResponsebufferbinding UDP socketcreated socket successfullyio_stream hit an error, shutting downfailed to associate send_message response to the senderErrorParsingLocaleErrorParsingFileUtf8RequestedLanguagesEmptyLanguageNotAvailableInitErrorfixlaunchLocalassertion failed: prev
+exceeded max validation depthno messages to sendzero bytes read, stream closed?closed while reading lengthzero bytes read for message, stream closed?closed while reading messagereset ReadTcpState::LenBytes: 0inconsistent in dropStreamErrorRemoteTerminateConnectionErrorHeaderTooBigactual_sizeRemoteClosingSpan not found, this is a bugtime.busytime.idleentertrust_negative_responsesconnectionsupdate-systemreinstall-packagesreset-keyringsremove-lockclear-cacheremove-orphansrank-mirrorsinstall-gamingshow-kwin-debuginstall-winboatinstall-vram-managementpolling FirstAnswerFuture twiceUpdate the system via package managerReinstall all native packagesReset and repopulate pacman keyringsRemove the pacman database lock fileClear the pacman package cacheRemove orphan packages from the systemRank mirrors to find up2date&fastest onesInstall `CachyOS` gaming meta-packagesShow the `KWin` Wayland debug console (if running)Install Winboat for Windows applicationsAttributesvaluesparentbind_addrpolled MutexLockFuture after completionNoInitialCipherSuitedisable_greaseTweakArgsNoSectionInvalidValueUnknownKeyRuntimeChildStdinenabletweak_namethe following required argument was not provided: tweak_nameChildStdoutEnableTWEAK_NAMEThe tweak to enableEnable a specific tweak (starts and enables a systemd service/timer)DisableThe tweak to disableDisable a specific tweak (stops and disables a systemd service/timer)List available tweaks and their current statusDnsArgsDnsH2NoConnectionsProtoQuinnConnectQuinnConnectionQuinnWriteErrorQuinnReadErrorQuinnTlsConfigErrorQuinnUnknownStreamErrorQuicMessageIdNot0RustlsErrorQueryCaseMismatchLaunchArgsResponseCodeNoRecordsFoundpackage-installerkernel-managerLaunch the `CachyOS` Package InstallerLaunch the `CachyOS` Kernel ManagerInvalidRemoteAddressNoDefaultClientConfigUnsupportedVersionnegative_ttlNoRecordsForwardNSDatamatch state must have non-empty pids*>assertion failed: self.by_id.len() <= u16::MAX as usizeassertion failed: patterns.len() >= 1assertion failed: hash_len >= 1equivalence classes are never emptyassertion failed: old_start_uid < old_start_aidanchored start state should be at index 3Teddy requires at least one patternTeddy does not support zero-length patternspatterns longer than SmallIndex::MAX are not allowedstate must not be dense yet__m128idfa::DFA(
+fatal runtime error: current thread handle already set during thread spawn, aborting
+gaming-package-installed = Spelpaket redan installerade!
+gaming-package-installed = Spillpakkene er allerede installert!
+https://doh.opendns.com/dns-queryhttps://doh.ffmuc.net/dns-queryhttps://family.cloudflare-dns.com/dns-queryhttps://cloudflare-dns.com/dns-queryhttps://dns.adguard-dns.com/dns-queryhttps://doh.pub/dns-queryhttps://dns.google/dns-queryhttps://common.dot.dns.yandex.net/dns-queryhttps://security.cloudflare-dns.com/dns-queryhttps://family.adguard-dns.com/dns-queryhttps://family.dot.dns.yandex.net/dns-queryhttps://safe.dot.dns.yandex.net/dns-queryhttps://dns.quad9.net/dns-queryRUhttps://dns.yandex.comEUhttps://dns.watchUShttps://1.1.1.1CNhttps://alidns.comhttps://www.quad9.nethttps://adguard-dns.iohttps://www.opendns.comhttps://1.1.1.1/familyhttps://www.dnspod.cnhttps://gcore.com/public-dnshttps://dns-setup.ffmuc.nethttps://dns.googlequic:dns.quad9.netquic:doq.ffmuc.netquic:family.adguard-dns.comquic:dns.adguard-dns.com- upstream: tcp-tls:- upstream:tcp-tls- -spkexec /usr/share/cachyos-hello/scripts/rootshell.sh/usr/share/cachyos-hello/scripts/terminal-helperCachyOS PackageInstallertweaksBrowsertweaksbrowser-labeltweaksBrowserpageapplications/sbin/cachyos-kernel-managerappBrowserfixesupdate-system-titleremove-orphans-titlerankmirrors-titleinstall-gaming-titleinstall-winboat-titlednsserver-titletroubleshootingtroubleshooting-labeltroubleshootingpageremove-lock-titlereinstall-titlereset-keyrings-titleclear-pkgcache-titleshow-kwinw-debug-titlepsd.serviceprofile-sync-daemonsystemd-oomd.servicebpftune.servicebpftune-gitbluetooth.servicebluezananicy-cpp.serviceananicy-cpparch-update.timercachy-updateXDG_CONFIG_HOMEarch-update-tray.desktop/etc/systemd/userdefault.target.wantstimers.target.wantssockets.target.wantsgraphical-session.target.wants/sbin/pkexecUnable to open file for writingUnable to write json to filepgrep/sbin/aura/sbin/pak/sbin/yay/sbin/parubutton-wiki-labelwelcome-titlewelcome-bodybutton-release-info-labelbutton-readme-labelbutton-involved-labelsection-installerbutton-installer-labelsection-projectsection-supportsection-docsbutton-forum-labelbutton-donate-labelbutton-software-labelbutton-development-labellaunch-start-label/sbin/bashUnable to read filedebug,i18n_embed=warn,which=warn,zbus::proxy=warn,hickory_resolver=warn,hickory_proto=warn,hickory_net=warn,rustls=warn,quinn=warn,quinn_proto=warn,quinn_udp=warn,h2=warn~/.config/cachyos/cachyos-hellocachyos-hello.logfailed to set global default subscribercachyos-rate-mirrorskillall arch-update-traysystemctldisablearch-updatearch-update --tray/var/lib/pacman/db.lcklock-doesnt-existremoved-db-lock
+install-gaming-title = Gamingpakketten installeren
+install-gaming-title = Installer Spill pakker
+install-gaming-title = Installer les paquets de jeux
+install-gaming-title = Installera spelpaket
+install-vram-management-title = Installer la gestion VRAM
+install-vram-management-titleinstall-vram-management-tooltipVRAM management button missingFailed to retrieve windowUnexpected action!!dnsConnectionsBrowser.configdockerinstall/etc/blocky/blocky.ymlfailed to write blocky configblocky.service127.0.0.1::1Some ISO check failed!ISO checks passed! Starting Installer..latency-testinglatency-timeout
+install-winboat-title = Installer Winboat
+install-winboat-title = Installera Winboat
+installer tous les paquets
+invalid timestamptoo many active read locks on RwLockassertion failed: is_unlocked(state)sanity checkpidfd_spawnp succeeded but the child's PID could not be obtainednul byte found in provided datafatal runtime error: assertion failed: output.write(&bytes).is_ok(), aborting
+ker installera Desktop-utg
+ker installera p
+latency-no-resultcustom-dns-invalid-hostnamecustom-dns-doh-url-requiredcustom-dns-invalidtweaktweak-enabled-titleCouldn't send data to channelfinal messagecreating UDP receive bufferudp receive attempts exceededunable to enqueue messageno query in requestquery currently in progress - returning shared lookupcreating new shared lookupValueEnum::value_variants contains only values with a corresponding ValueEnum::to_possible_valuefailed to receive messageMissing file descriptorslocalesave_pathdefault_localeUnable to parseautostartcalamares-install-typeUnable to start GTK3.Could not load gresource file.org.cachyos.helloFailed to get best localeno remaining budget for opportunistic probingfailed to spawn `tracing-appender` non-blocking worker threadpages/af/involvedpages/af/readmepages/bg/involvedpages/bg/readmepages/de/involvedpages/de/readmepages/de-DE/involvedpages/de-DE/readmepages/el/involvedpages/el/readmepages/en/involvedpages/en/readmepages/es/involvedpages/es/readmepages/et/involvedpages/et/readmepages/eu/involvedpages/eu/readmepages/fr/involvedpages/fr/readmepages/hu/involvedpages/hu/readmepages/hy/involvedpages/hy/readmepages/it/involvedpages/it/readmepages/ja/involvedpages/ja/readmepages/ka/involvedpages/ka/readmepages/nb/involvedpages/nb/readmepages/pl/involvedpages/pl/readmepages/pt-BR/involvedpages/pt-BR/readmepages/pt-PT/involvedpages/pt-PT/readmepages/ru/involvedpages/ru/readmepages/tr/involvedpages/tr/readmepages/uk/involvedpages/uk/readmepages/zh-CN/involvedpages/zh-CN/readmeFailed to initialize tokio runtimeAdGuardAdGuard Family ProtectionCloudflareCloudflare Malware blockingCloudflare Malware and adult content blockingCisco Umbrella(OpenDNS)DNS.WatchFFMUC DNS / Freie Netze Muenchen e.V.GCoreGoogleQuad9YandexYandex Malware blockingYandex Malware and adult content blocking
+launch-start-label = 
+launch-start-label = Abiarazi hasieran
+launch-start-label = Abrir ao Iniciar
+launch-start-label = Automatikus ind
+launch-start-label = Ba
+launch-start-label = Begin by opstart
+launch-start-label = Beim Systemstart ausf
+launch-start-label = Ejecutar al inicio
+launch-start-label = Fillo me sistemin
+launch-start-label = Iniciar no arranque
+launch-start-label = K
+launch-start-label = Kj
+launch-start-label = Lancer au d
+launch-start-label = Lancia all'avvio
+launch-start-label = Launch at start
+launch-start-label = Obre-ho a l'inici
+launch-start-label = Paleisti kartu su sistema
+launch-start-label = Sistem
+launch-start-label = Spusti
+launch-start-label = Spustit p
+da ap dung 761 doan vao /tmp/tmp.eqwEVTk0nK/p/cachyos-hello
+da ap dung 4 doan vao /tmp/tmp.eqwEVTk0nK/p/cachyos-installer
+=== sizes cachyos-hello
+14095576
+14095576
+=== strings diff cachyos-hello (lines with path/command-like text)
+< CachyOS Kernel M~~~~~~~~~~~~~~~~dns-connection-bDatabaseTrustAllne
+> DeftOS  Kernel M~~~~~~~~~~~~~~~~dns-connection-bDatabaseTrustAllne
+<   userAgent: "CachyOS/blocky"
+>   userAgent: "DeftOS /blocky"
+<  DNSPod (Tencent)control stream was closedsecond settings frame receivedthis cannot be Nonegot two control streamsgot two encoder streamsgot two decoder streamsautostart_pathdesktop_pathautostartlabeldevelopmentdonatefirstcategoryforuminstalllabelreadmereleasesecondcategorythirdcategorywelcomelabelwelcometitletooltip_textchild not foundbutton-web-resource-tooltipbutton-about-tooltipabout-dialog-titleabout-dialog-comments0.28.1Vladislav Nepogodin2021-2026 CachyOS teamhttps://github.com/cachyos/cachyos-welcome/org/cachyos/helloError initializing gtk css provider.Could not get the object windowCould not get the headerbarlogo_path/usr/bin/nmcliexternal-link-symbolicorg.freedesktop.NetworkManagerorg.freedesktop.NetworkManager.Device/org/freedesktop/NetworkManager/Settingsorg.freedesktop.NetworkManager.Settings/org/freedesktop/NetworkManagerorg.freedesktop.NetworkManager.Connection.Activeorg.freedesktop.NetworkManager.Settings.Connectionorg.kde.KWin/KWincan not lookup IPs for no names<unknown time>client received a server-initiated bidirectional streamStream type not resolved yetSession ID not resolved yetplaindotdohrequestor canceledid space exhausted, consider filing an issueAvailable Tweaks Status:
+>  DNSPod (Tencent)control stream was closedsecond settings frame receivedthis cannot be Nonegot two control streamsgot two encoder streamsgot two decoder streamsautostart_pathdesktop_pathautostartlabeldevelopmentdonatefirstcategoryforuminstalllabelreadmereleasesecondcategorythirdcategorywelcomelabelwelcometitletooltip_textchild not foundbutton-web-resource-tooltipbutton-about-tooltipabout-dialog-titleabout-dialog-comments0.28.1Vladislav Nepogodin2021-2026 DeftOS  teamhttps://github.com/cachyos/cachyos-welcome/org/cachyos/helloError initializing gtk css provider.Could not get the object windowCould not get the headerbarlogo_path/usr/bin/nmcliexternal-link-symbolicorg.freedesktop.NetworkManagerorg.freedesktop.NetworkManager.Device/org/freedesktop/NetworkManager/Settingsorg.freedesktop.NetworkManager.Settings/org/freedesktop/NetworkManagerorg.freedesktop.NetworkManager.Connection.Activeorg.freedesktop.NetworkManager.Settings.Connectionorg.kde.KWin/KWincan not lookup IPs for no names<unknown time>client received a server-initiated bidirectional streamStream type not resolved yetSession ID not resolved yetplaindotdohrequestor canceledid space exhausted, consider filing an issueAvailable Tweaks Status:
+< Updating system...Reinstalling all native packages...Resetting pacman keyrings...Clearing package cache...Removing orphan packages...Ranking mirrors...Installing CachyOS gaming packages...Attempting to launch KWin debug console...Installing Winboat...Installing VRAM management packages...CachyOS Package Installercachyos-piCachyOS Kernel Managercachyos-kernel-manageren_USfailed to fallbackdnsdns-priorityignore-auto-dnsdns-over-tlsfailed conversion to OwnedValuefailed to run cmdWARNING
+> Updating system...Reinstalling all native packages...Resetting pacman keyrings...Clearing package cache...Removing orphan packages...Ranking mirrors...Installing DeftOS  gaming packages...Attempting to launch KWin debug console...Installing Winboat...Installing VRAM management packages...DeftOS  Package Installercachyos-piDeftOS  Kernel Managercachyos-kernel-manageren_USfailed to fallbackdnsdns-priorityignore-auto-dnsdns-over-tlsfailed conversion to OwnedValuefailed to run cmdWARNING
+< https://doh.opendns.com/dns-queryhttps://doh.ffmuc.net/dns-queryhttps://family.cloudflare-dns.com/dns-queryhttps://cloudflare-dns.com/dns-queryhttps://dns.adguard-dns.com/dns-queryhttps://doh.pub/dns-queryhttps://dns.google/dns-queryhttps://common.dot.dns.yandex.net/dns-queryhttps://security.cloudflare-dns.com/dns-queryhttps://family.adguard-dns.com/dns-queryhttps://family.dot.dns.yandex.net/dns-queryhttps://safe.dot.dns.yandex.net/dns-queryhttps://dns.quad9.net/dns-queryRUhttps://dns.yandex.comEUhttps://dns.watchUShttps://1.1.1.1CNhttps://alidns.comhttps://www.quad9.nethttps://adguard-dns.iohttps://www.opendns.comhttps://1.1.1.1/familyhttps://www.dnspod.cnhttps://gcore.com/public-dnshttps://dns-setup.ffmuc.nethttps://dns.googlequic:dns.quad9.netquic:doq.ffmuc.netquic:family.adguard-dns.comquic:dns.adguard-dns.com- upstream: tcp-tls:- upstream:tcp-tls- -spkexec /usr/share/cachyos-hello/scripts/rootshell.sh/usr/share/cachyos-hello/scripts/terminal-helperCachyOS PackageInstallertweaksBrowsertweaksbrowser-labeltweaksBrowserpageapplications/sbin/cachyos-kernel-managerappBrowserfixesupdate-system-titleremove-orphans-titlerankmirrors-titleinstall-gaming-titleinstall-winboat-titlednsserver-titletroubleshootingtroubleshooting-labeltroubleshootingpageremove-lock-titlereinstall-titlereset-keyrings-titleclear-pkgcache-titleshow-kwinw-debug-titlepsd.serviceprofile-sync-daemonsystemd-oomd.servicebpftune.servicebpftune-gitbluetooth.servicebluezananicy-cpp.serviceananicy-cpparch-update.timercachy-updateXDG_CONFIG_HOMEarch-update-tray.desktop/etc/systemd/userdefault.target.wantstimers.target.wantssockets.target.wantsgraphical-session.target.wants/sbin/pkexecUnable to open file for writingUnable to write json to filepgrep/sbin/aura/sbin/pak/sbin/yay/sbin/parubutton-wiki-labelwelcome-titlewelcome-bodybutton-release-info-labelbutton-readme-labelbutton-involved-labelsection-installerbutton-installer-labelsection-projectsection-supportsection-docsbutton-forum-labelbutton-donate-labelbutton-software-labelbutton-development-labellaunch-start-label/sbin/bashUnable to read filedebug,i18n_embed=warn,which=warn,zbus::proxy=warn,hickory_resolver=warn,hickory_proto=warn,hickory_net=warn,rustls=warn,quinn=warn,quinn_proto=warn,quinn_udp=warn,h2=warn~/.config/cachyos/cachyos-hellocachyos-hello.logfailed to set global default subscribercachyos-rate-mirrorskillall arch-update-traysystemctldisablearch-updatearch-update --tray/var/lib/pacman/db.lcklock-doesnt-existremoved-db-lock
+> https://doh.opendns.com/dns-queryhttps://doh.ffmuc.net/dns-queryhttps://family.cloudflare-dns.com/dns-queryhttps://cloudflare-dns.com/dns-queryhttps://dns.adguard-dns.com/dns-queryhttps://doh.pub/dns-queryhttps://dns.google/dns-queryhttps://common.dot.dns.yandex.net/dns-queryhttps://security.cloudflare-dns.com/dns-queryhttps://family.adguard-dns.com/dns-queryhttps://family.dot.dns.yandex.net/dns-queryhttps://safe.dot.dns.yandex.net/dns-queryhttps://dns.quad9.net/dns-queryRUhttps://dns.yandex.comEUhttps://dns.watchUShttps://1.1.1.1CNhttps://alidns.comhttps://www.quad9.nethttps://adguard-dns.iohttps://www.opendns.comhttps://1.1.1.1/familyhttps://www.dnspod.cnhttps://gcore.com/public-dnshttps://dns-setup.ffmuc.nethttps://dns.googlequic:dns.quad9.netquic:doq.ffmuc.netquic:family.adguard-dns.comquic:dns.adguard-dns.com- upstream: tcp-tls:- upstream:tcp-tls- -spkexec /usr/share/cachyos-hello/scripts/rootshell.sh/usr/share/cachyos-hello/scripts/terminal-helperDeftOS  PackageInstallertweaksBrowsertweaksbrowser-labeltweaksBrowserpageapplications/sbin/cachyos-kernel-managerappBrowserfixesupdate-system-titleremove-orphans-titlerankmirrors-titleinstall-gaming-titleinstall-winboat-titlednsserver-titletroubleshootingtroubleshooting-labeltroubleshootingpageremove-lock-titlereinstall-titlereset-keyrings-titleclear-pkgcache-titleshow-kwinw-debug-titlepsd.serviceprofile-sync-daemonsystemd-oomd.servicebpftune.servicebpftune-gitbluetooth.servicebluezananicy-cpp.serviceananicy-cpparch-update.timercachy-updateXDG_CONFIG_HOMEarch-update-tray.desktop/etc/systemd/userdefault.target.wantstimers.target.wantssockets.target.wantsgraphical-session.target.wants/sbin/pkexecUnable to open file for writingUnable to write json to filepgrep/sbin/aura/sbin/pak/sbin/yay/sbin/parubutton-wiki-labelwelcome-titlewelcome-bodybutton-release-info-labelbutton-readme-labelbutton-involved-labelsection-installerbutton-installer-labelsection-projectsection-supportsection-docsbutton-forum-labelbutton-donate-labelbutton-software-labelbutton-development-labellaunch-start-label/sbin/bashUnable to read filedebug,i18n_embed=warn,which=warn,zbus::proxy=warn,hickory_resolver=warn,hickory_proto=warn,hickory_net=warn,rustls=warn,quinn=warn,quinn_proto=warn,quinn_udp=warn,h2=warn~/.config/cachyos/cachyos-hellocachyos-hello.logfailed to set global default subscribercachyos-rate-mirrorskillall arch-update-traysystemctldisablearch-updatearch-update --tray/var/lib/pacman/db.lcklock-doesnt-existremoved-db-lock
+< N".R/`
+< ``:/
+< .L-_
+< xm/I
+> rai-
+< CachyOS is nie net 'n bedryfstelsel nie, dit is ook 'n dinamiese gemeenskap van mense wat 'n gratis en oop projek geniet, versamel en interaksie het. Of dit nou is deur ander te help om deur kwessies te sorteer, deur hulle welkom te laat voel, of bloot deur ander CachyOS-gebruikers te ontmoet en met hulle te praat, ons beveel aan dat jy by die gemeenskap aansluit en deelneem om CachyOS beter te maak.
+> DeftOS  is nie net 'n bedryfstelsel nie, dit is ook 'n dinamiese gemeenskap van mense wat 'n gratis en oop projek geniet, versamel en interaksie het. Of dit nou is deur ander te help om deur kwessies te sorteer, deur hulle welkom te laat voel, of bloot deur ander DeftOS -gebruikers te ontmoet en met hulle te praat, ons beveel aan dat jy by die gemeenskap aansluit en deelneem om DeftOS  beter te maak.
+< As jy vrye tyd het en jy bereid is om ander gebruikers met tegniese probleme te help, moet jy dit ernstig oorweeg om die forums te lees en/of by die IRC-kanaal aan te sluit en ander CachyOS-gebruikers te help om die probleme op te los wat jy weet hoe om op te los.
+> As jy vrye tyd het en jy bereid is om ander gebruikers met tegniese probleme te help, moet jy dit ernstig oorweeg om die forums te lees en/of by die IRC-kanaal aan te sluit en ander DeftOS -gebruikers te help om die probleme op te los wat jy weet hoe om op te los.
+< CachyOS ondersteun nie net die gebruik van veelvuldige kernels nie (kiesbaar uit die gevorderde opsies op die opstartskerm), maar bied ook toegang tot die nuutste kernels. Dit kan gedoen word deur die gebruik van die Kernel-module in CachyOS se grafiese instellingsbestuurder, of via die opdragre
+< l met behulp van die chwd-kernel (CachyOS Hardware Detection) opdrag.
+< Hierdie CachyOS-instrumente sal outomaties 'n nuut ge
+> DeftOS  ondersteun nie net die gebruik van veelvuldige kernels nie (kiesbaar uit die gevorderde opsies op die opstartskerm), maar bied ook toegang tot die nuutste kernels. Dit kan gedoen word deur die gebruik van die Kernel-module in DeftOS  se grafiese instellingsbestuurder, of via die opdragre
+> l met behulp van die chwd-kernel (DeftOS  Hardware Detection) opdrag.
+> Hierdie DeftOS -instrumente sal outomaties 'n nuut ge
+< Miskien is die eerste plek om generiese Linux-hulp te soek deur jou gunsteling soekenjin te gebruik. Sluit net woorde soos 'Linux', 'CachyOS' of 'Arch' in jou soektog in.
+> Miskien is die eerste plek om generiese Linux-hulp te soek deur jou gunsteling soekenjin te gebruik. Sluit net woorde soos 'Linux', 'DeftOS ' of 'Arch' in jou soektog in.
+< Die CachyOS-forum is verdeel in subforums vir verskillende onderwerpe en omgewings, plaas asseblief jou navraag op die toepaslike plek!
+> Die DeftOS -forum is verdeel in subforums vir verskillende onderwerpe en omgewings, plaas asseblief jou navraag op die toepaslike plek!
+<     - <a href="https://wiki.cachyos.org">CachyOS Wiki</a> - Amptelike wiki vir CachyOS.
+>     - <a href="https://wiki.cachyos.org">DeftOS  Wiki</a> - Amptelike wiki vir DeftOS .
+<  chwd-kernel (CachyOS Hardware Detection).
+>  chwd-kernel (DeftOS  Hardware Detection).
+<     - <a href="https://wiki.cachyos.org">CachyOS Wiki</a> - 
+>     - <a href="https://wiki.cachyos.org">DeftOS  Wiki</a> - 
+< hl geben, willkommen zu sein, oder einfach indem Sie andere CachyOS-Benutzer treffen und sich mit ihnen unterhalten - wir empfehlen Ihnen, der Gemeinschaft beizutreten und daran mitzuwirken, CachyOS besser zu machen.
+> hl geben, willkommen zu sein, oder einfach indem Sie andere DeftOS -Benutzer treffen und sich mit ihnen unterhalten - wir empfehlen Ihnen, der Gemeinschaft beizutreten und daran mitzuwirken, DeftOS  besser zu machen.
+< gung ziehen, die Foren zu lesen und/oder dem IRC-Channel beizutreten und anderen CachyOS-Benutzern bei der L
+> gung ziehen, die Foren zu lesen und/oder dem IRC-Channel beizutreten und anderen DeftOS -Benutzern bei der L
+< nnte, sagen Sie es uns bitte. Ob es sich um die Aufnahme eines fehlenden Hardware-Treibers handelt, oder um eine Software-Anwendung, die Teil einer Standard-Installation sein sollte, oder ob Sie andere Ideen haben, wie man CachyOS besser machen kann, wir sind immer daran interessiert, sie zu h
+> nnte, sagen Sie es uns bitte. Ob es sich um die Aufnahme eines fehlenden Hardware-Treibers handelt, oder um eine Software-Anwendung, die Teil einer Standard-Installation sein sollte, oder ob Sie andere Ideen haben, wie man DeftOS  besser machen kann, wir sind immer daran interessiert, sie zu h
+< hlbar in den erweiterten Optionen auf dem Boot-Bildschirm), sondern bietet auch Zugriff auf die allerneuesten Bleeding-Edge-Kernel. Dies kann durch die Verwendung des Kernelmoduls im grafischen Einstellungsmanager von CachyOS oder 
+< ber die Kommandozeile mit dem chwd-kernel (CachyOS Hardware Detection) Befehl erfolgen.
+< Diese CachyOS-Tools aktualisieren automatisch einen neu installierten Kernel zusammen mit allen Modulen, die derzeit mit Ihrem bestehenden Kernel verwendet werden. Wenn Sie zum Beispiel von Kernel 3.18 auf 4.1 aktualisieren w
+> hlbar in den erweiterten Optionen auf dem Boot-Bildschirm), sondern bietet auch Zugriff auf die allerneuesten Bleeding-Edge-Kernel. Dies kann durch die Verwendung des Kernelmoduls im grafischen Einstellungsmanager von DeftOS  oder 
+> ber die Kommandozeile mit dem chwd-kernel (DeftOS  Hardware Detection) Befehl erfolgen.
+> Diese DeftOS -Tools aktualisieren automatisch einen neu installierten Kernel zusammen mit allen Modulen, die derzeit mit Ihrem bestehenden Kernel verwendet werden. Wenn Sie zum Beispiel von Kernel 3.18 auf 4.1 aktualisieren w
+< r spezifische Hilfe mit CachyOS haben wir ein spezielles Online-Forum, in dem Sie nach Themen suchen oder selbst eines erstellen k
+> r spezifische Hilfe mit DeftOS  haben wir ein spezielles Online-Forum, in dem Sie nach Themen suchen oder selbst eines erstellen k
+< Das CachyOS-Forum ist in Unterforen f
+> Das DeftOS -Forum ist in Unterforen f
+< glichkeit, Hilfe zu bekommen, ist es, Fragen an die CachyOS-Mailingliste zu schicken (Sie k
+> glichkeit, Hilfe zu bekommen, ist es, Fragen an die DeftOS -Mailingliste zu schicken (Sie k
+<     - <a href="https://wiki.cachyos.org">CachyOS Wiki</a> - Offizielles Wiki f
+>     - <a href="https://wiki.cachyos.org">DeftOS  Wiki</a> - Offizielles Wiki f
+<     - <a href="https://wiki.cachyos.org">CachyOS Wiki</a> - 
+>     - <a href="https://wiki.cachyos.org">DeftOS  Wiki</a> - 
+< If you have some spare time and you're willing to help other users with technical problems, you should seriously consider reading the forums and/or joining the IRC channel and helping other CachyOS users solve the problems you know how to fix.
+> If you have some spare time and you're willing to help other users with technical problems, you should seriously consider reading the forums and/or joining the IRC channel and helping other DeftOS  users solve the problems you know how to fix.
+< CachyOS not only supports the use of multiple kernels (selectable from the advanced options at the boot screen), but also provides access to the very latest bleeding-edge kernels as well. This can be done through the use of the Kernel module in CachyOS's graphical Settings Manager, or via the command line using the chwd-kernel (CachyOS Hardware Detection) command.
+grep: write error: Broken pipe
+grep: write error: Broken pipe
+diff: standard output: Broken pipe
+=== sizes cachyos-installer
+3945104
+3945104
+=== strings diff cachyos-installer (lines with path/command-like text)
+=== all strings in PATCHED hello/installer containing 'DeftOS' near command-ish text
+Welcome to the DeftOS Installer 
+  DeftOS Installer   
+=== CHECK Calamares (ISO goc + overlay)
+
+##### etc/calamares/settings.conf
+  [OK] branding 'deftos' -> /usr/share/calamares/branding/deftos/branding.desc
+  [WARN] show: 'summary' khong co summary.conf (dung mac dinh neu module khong can)
+  [WARN] exec: 'localecfg' khong co localecfg.conf (dung mac dinh neu module khong can)
+  [WARN] exec: 'chwd' khong co chwd.conf (dung mac dinh neu module khong can)
+  [WARN] exec: 'networkcfg' khong co networkcfg.conf (dung mac dinh neu module khong can)
+  ... xong
+
+##### usr/share/calamares/settings.conf
+  [OK] branding 'deftos' -> /usr/share/calamares/branding/deftos/branding.desc
+  [WARN] show: 'summary' khong co summary.conf (dung mac dinh neu module khong can)
+  [WARN] shellprocess@modify_mk_hook: script tham chieu /usr/share/libalpm/scripts/ (khong thay trong cay da trich)
+  [WARN] shellprocess@modify_mk_hook: script tham chieu /usr/share/libalpm/scripts/ (khong thay trong cay da trich)
+  [WARN] shellprocess@modify_mk_hook: script tham chieu /usr/share/libalpm/scripts/mkinitcpio-install-calamares (khong thay trong cay da trich)
+  [WARN] shellprocess@initialize_pacman: script tham chieu /etc/pacman.d/mirrorlist (khong thay trong cay da trich)
+  [WARN] shellprocess@initialize_pacman: script tham chieu /etc/pacman.d/cachyos-mirrorlist (khong thay trong cay da trich)
+  [WARN] shellprocess@initialize_pacman: script tham chieu /etc/pacman.d/cachyos-v3-mirrorlist (khong thay trong cay da trich)
+  [WARN] shellprocess@initialize_pacman: script tham chieu /etc/pacman.d/cachyos-v4-mirrorlist (khong thay trong cay da trich)
+  [WARN] shellprocess@initialize_pacman: script tham chieu /etc/pacman.d/gnupg (khong thay trong cay da trich)
+  [WARN] shellprocess@initialize_pacman: script tham chieu /etc/resolv.conf (khong thay trong cay da trich)
+  [WARN] shellprocess@before-online: script tham chieu /etc/pacman-more.conf (khong thay trong cay da trich)
+  [WARN] exec: 'localecfg' khong co localecfg.conf (dung mac dinh neu module khong can)
+  [WARN] exec: 'chwd' khong co chwd.conf (dung mac dinh neu module khong can)
+  [WARN] exec: 'zfshostid' khong co zfshostid.conf (dung mac dinh neu module khong can)
+  [WARN] exec: 'networkcfg' khong co networkcfg.conf (dung mac dinh neu module khong can)
+  [WARN] exec: 'hwclock' khong co hwclock.conf (dung mac dinh neu module khong can)
+  [WARN] shellprocess@reset_mk_hook: script tham chieu /etc/pacman.d/hooks/90-mkinitcpio-install.hook (khong thay trong cay da trich)
+  [WARN] shellprocess@reset_mk_hook: script tham chieu /usr/share/libalpm/scripts/mkinitcpio-install-calamares (khong thay trong cay da trich)
+  [WARN] shellprocess: script tham chieu /etc/systemd/system/etc-pacman.d-gnupg.mount (khong thay trong cay da trich)
+  [WARN] shellprocess: script tham chieu /etc/systemd/system/display-manager.service (khong thay trong cay da trich)
+  [WARN] shellprocess@greetd: script tham chieu /etc/greetd/config.toml... (khong thay trong cay da trich)
+  [WARN] shellprocess@greetd: script tham chieu /usr/share/noctalia-greeter/config.toml (khong thay trong cay da trich)
+  [WARN] shellprocess@greetd: script tham chieu /etc/greetd/config.toml (khong thay trong cay da trich)
+  [WARN] shellprocess@greetd: script tham chieu /etc/greetd (khong thay trong cay da trich)
+  [WARN] shellprocess@greetd: script tham chieu /etc/greetd/config.toml (khong thay trong cay da trich)
+  ... xong
+
+##### usr/share/calamares/settings_online.conf
+  [OK] branding 'deftos' -> /usr/share/calamares/branding/deftos/branding.desc
+  [WARN] show: 'summary' khong co summary.conf (dung mac dinh neu module khong can)
+  [WARN] shellprocess@modify_mk_hook: script tham chieu /usr/share/libalpm/scripts/ (khong thay trong cay da trich)
+  [WARN] shellprocess@modify_mk_hook: script tham chieu /usr/share/libalpm/scripts/ (khong thay trong cay da trich)
+  [WARN] shellprocess@modify_mk_hook: script tham chieu /usr/share/libalpm/scripts/mkinitcpio-install-calamares (khong thay trong cay da trich)
+  [WARN] shellprocess@initialize_pacman: script tham chieu /etc/pacman.d/mirrorlist (khong thay trong cay da trich)
+  [WARN] shellprocess@initialize_pacman: script tham chieu /etc/pacman.d/cachyos-mirrorlist (khong thay trong cay da trich)
+  [WARN] shellprocess@initialize_pacman: script tham chieu /etc/pacman.d/cachyos-v3-mirrorlist (khong thay trong cay da trich)
+  [WARN] shellprocess@initialize_pacman: script tham chieu /etc/pacman.d/cachyos-v4-mirrorlist (khong thay trong cay da trich)
+  [WARN] shellprocess@initialize_pacman: script tham chieu /etc/pacman.d/gnupg (khong thay trong cay da trich)
+  [WARN] shellprocess@initialize_pacman: script tham chieu /etc/resolv.conf (khong thay trong cay da trich)
+  [WARN] shellprocess@before-online: script tham chieu /etc/pacman-more.conf (khong thay trong cay da trich)
+  [WARN] exec: 'localecfg' khong co localecfg.conf (dung mac dinh neu module khong can)
+  [WARN] exec: 'chwd' khong co chwd.conf (dung mac dinh neu module khong can)
+  [WARN] exec: 'zfshostid' khong co zfshostid.conf (dung mac dinh neu module khong can)
+  [WARN] exec: 'networkcfg' khong co networkcfg.conf (dung mac dinh neu module khong can)
+  [WARN] exec: 'hwclock' khong co hwclock.conf (dung mac dinh neu module khong can)
+  [WARN] shellprocess@reset_mk_hook: script tham chieu /etc/pacman.d/hooks/90-mkinitcpio-install.hook (khong thay trong cay da trich)
+  [WARN] shellprocess@reset_mk_hook: script tham chieu /usr/share/libalpm/scripts/mkinitcpio-install-calamares (khong thay trong cay da trich)
+  [WARN] shellprocess: script tham chieu /etc/systemd/system/etc-pacman.d-gnupg.mount (khong thay trong cay da trich)
+  [WARN] shellprocess: script tham chieu /etc/systemd/system/display-manager.service (khong thay trong cay da trich)
+  [WARN] shellprocess@greetd: script tham chieu /etc/greetd/config.toml... (khong thay trong cay da trich)
+  [WARN] shellprocess@greetd: script tham chieu /usr/share/noctalia-greeter/config.toml (khong thay trong cay da trich)
+  [WARN] shellprocess@greetd: script tham chieu /etc/greetd/config.toml (khong thay trong cay da trich)
+  [WARN] shellprocess@greetd: script tham chieu /etc/greetd (khong thay trong cay da trich)
+  [WARN] shellprocess@greetd: script tham chieu /etc/greetd/config.toml (khong thay trong cay da trich)
+  ... xong
+
+TONG: 0 loi FAIL
+=== settings_online.conf: modules/ trong /etc/calamares sau khi gop
+bootloader.conf
+contextualprocess.conf
+displaymanager.conf
+dracut.conf
+dummycpp.conf
+dummypython.conf
+finished.conf
+finishedq.conf
+fsresizer.conf
+fstab.conf
+grubcfg.conf
+initcpio.conf
+initcpiocfg.conf
+initramfs.conf
+interactiveterminal.conf
+keyboard.conf
+keyboardq.conf
+license.conf
+locale.conf
+localeq.conf
+luksbootkeyfile.conf
+luksopenswaphookcfg.conf
+machineid.conf
+mount.conf
+netinstall.conf
+netinstall.yaml
+notesqml.conf
+oemid.conf
+openrcdmcryptcfg.conf
+packagechooser_bootloader.conf
+packagechooser_cpu.conf
+packagechooser_desktop.conf
+packagechooser_gpu.conf
+packagechooserq.conf
+packages.conf
+packages_offline.conf
+packages_online.conf
+pacstrap.conf
+partition.conf
+plasmalnf.conf
+plymouthcfg.conf
+preservefiles.conf
+rawfs.conf
+removeuser.conf
+services-openrc.conf
+services-systemd.conf
+shellprocess-before-online.conf
+shellprocess-before.conf
+shellprocess.conf
+shellprocess_branding.conf
+shellprocess_btrfs_snapshot.conf
+shellprocess_cleanup_calamares.conf
+shellprocess_enable_ufw.conf
+shellprocess_greetd.conf
+shellprocess_initialize_pacman.conf
+shellprocess_modify_mk_hook.conf
+shellprocess_reset_mk_hook.conf
+tracking.conf
+umount.conf
+unpackfs.conf
+unpackfsc.conf
+users.conf
+usersq.conf
+welcome.conf
+welcome_online.conf
+welcomeq.conf
+zfs.conf
+=== [VISIBLE] ten file chua 'cachy' (ngoai binary/icon)
+/usr/share/applications/cachyos-hello.desktop
+=== [VISIBLE] .desktop: dong Name/Comment/GenericName khong dich chua cachy
+/usr/share/applications/cachyos-hello.desktop:6:Name=CachyOS Hello
+/usr/share/applications/cachyos-hello.desktop:10:Comment=A tool providing access to documentation and support for new CachyOS users.
+=== [VISIBLE] file text khac chua cachy (sddm/plasma/plymouth/grub/etc)
+/etc/hostname
+=== [VISIBLE] etc/issue, etc/hostname, etc/default
+\S{PRETTY_NAME} \r (\l)
+
+CachyOS
+=== [VISIBLE] sddm theme / plasma look-and-feel dirs
+ls: cannot access '/tmp/tmp.eqwEVTk0nK/vis/usr/share/plymouth/themes': No such file or directory
+/tmp/tmp.eqwEVTk0nK/vis/usr/share/grub/themes:
+starfield
+
+/tmp/tmp.eqwEVTk0nK/vis/usr/share/plasma/look-and-feel:
+org.kde.breeze.desktop
+org.kde.breezedark.desktop
+org.kde.breezetwilight.desktop
+
+/tmp/tmp.eqwEVTk0nK/vis/usr/share/sddm/themes:
+breeze
