@@ -3,7 +3,7 @@ $1                  .o+`          The Simple
 $1                 `ooo/         You Like One 
 $1                `+oooo:      The Custom Kernel ?
 $1               `+oooooo:        Not is DeftOS
-$1               -+oooooo+:  Made With CachyOS - Arch Based
+$1               -+oooooo+:  Made With DeftOS - Arch Based
 $1             `/:-:++oooo+:        By MaeAry
 $1            `/++++/+++++++:
 $1           `/++++++++++++++:

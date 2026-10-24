@@ -1,4 +1,4 @@
-# DeftOS — Cachy Rebranded KDE Plasma 6
+# DeftOS — KDE Plasma 6
 
 High-performance Arch-based Linux ISO rebranded from CachyOS with KDE Plasma 6, featuring custom wallpaper, optimized kernel (Linux 7.2.10), and Calamares installer.
 

@@ -51,4 +51,25 @@ echo "=== CHECK Calamares (ISO goc + overlay)"
 python3 "$REPO/tools/check-calamares.py" "$M" etc/calamares/settings.conf usr/share/calamares/settings.conf usr/share/calamares/settings_online.conf
 echo "=== settings_online.conf: modules/ trong /etc/calamares sau khi gop"; ls "$M/etc/calamares/modules" | head -80
 } >> "$OUT" 2>&1
+
+# ---- Chu "cachy" hien thi nam trong ISO goc (ngoai overlay) ----
+V="$W/vis"; mkdir -p "$V"
+sudo unsquashfs -f -d "$V" "$W/iso/arch/x86_64/airootfs.sfs" usr/share/applications usr/share/sddm usr/lib/sddm usr/share/plasma \
+  usr/share/plymouth usr/share/grub usr/share/metainfo usr/share/desktop-directories usr/share/color-schemes \
+  usr/share/wallpapers usr/share/backgrounds usr/share/kdisplay usr/share/knotifications6 \
+  etc/sddm.conf etc/sddm.conf.d etc/issue etc/hostname etc/default etc/plymouth etc/environment etc/xdg >/dev/null 2>&1
+sudo chown -R "$(id -u)":"$(id -g)" "$V"
+{
+echo "=== [VISIBLE] ten file chua 'cachy' (ngoai binary/icon)"
+find "$V" -iname '*cachy*' | sed "s|$V||" | head -60
+echo "=== [VISIBLE] .desktop: dong Name/Comment/GenericName khong dich chua cachy"
+grep -rIn -i -E '^(Name|Comment|GenericName)=.*cachy' "$V/usr/share/applications" "$V/etc/xdg" 2>/dev/null | sed "s|$V||" | cut -c1-200 | head -60
+echo "=== [VISIBLE] file text khac chua cachy (sddm/plasma/plymouth/grub/etc)"
+grep -rIl -i cachy "$V/usr/share/sddm" "$V/usr/lib/sddm" "$V/usr/share/plasma" "$V/usr/share/plymouth" "$V/usr/share/grub" \
+  "$V/usr/share/metainfo" "$V/etc" 2>/dev/null | sed "s|$V||" | head -60
+echo "=== [VISIBLE] etc/issue, etc/hostname, etc/default"
+cat "$V/etc/issue" "$V/etc/hostname" 2>/dev/null; grep -rn -i cachy "$V/etc/default" "$V/etc/environment" 2>/dev/null | sed "s|$V||" | head
+echo "=== [VISIBLE] sddm theme / plasma look-and-feel dirs"
+ls "$V/usr/share/sddm/themes" "$V/usr/share/plasma/look-and-feel" "$V/usr/share/plymouth/themes" "$V/usr/share/grub/themes" 2>&1 | head -40
+} >> "$OUT" 2>&1
 sudo umount "$W/iso"
