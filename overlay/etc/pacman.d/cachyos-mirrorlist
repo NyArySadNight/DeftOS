@@ -1,0 +1,8 @@
+﻿##
+## CachyOS repository mirrorlist
+##
+
+Server = https://mirror.cachyos.org/$repo/$arch
+Server = https://cachyos.jing.rocks/$repo/$arch
+Server = https://cdn.jsdelivr.net/gh/CachyOS/CachyOS-repos/$repo/$arch
+Server = https://packages.cachyos.org/$repo/$arch
