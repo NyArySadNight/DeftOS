@@ -1,0 +1,6 @@
+#!/bin/bash
+# DeftOS mirror update stub
+# This script is called by Calamares but we skip it
+# since mirrorlist is already configured properly
+
+exit 0
