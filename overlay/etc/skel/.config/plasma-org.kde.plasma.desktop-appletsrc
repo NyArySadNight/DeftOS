@@ -132,8 +132,8 @@ immutability=1
 plugin=org.kde.plasma.networkmanagement
 
 [Containments][4][Wallpaper][org.kde.image][General]
-Image=/usr/share/wallpapers/deftos-wallpaper.jpg
-PreviewImage=/usr/share/wallpapers/deftos-wallpaper.jpg
+Image=/usr/share/wallpapers/DeftOSHole.jpg
+PreviewImage=/usr/share/wallpapers/DeftOSHole.jpg
 SlidePaths=/usr/share/wallpapers/
 
 [Containments][29][General]
