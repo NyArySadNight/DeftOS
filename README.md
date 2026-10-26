@@ -1,39 +1,30 @@
-# DeftOS — Feature Highlights
+# DeftOS vs. Stock CachyOS — What Is Different
 
-DeftOS is a Linux distribution with a clean KDE Plasma 6 desktop, a performance-tuned kernel, and a simplified installation experience. Below is a closer look at what you actually get.
+DeftOS starts from CachyOS and makes a set of deliberate changes. This document lists them so you can judge whether they fit your needs. Each point describes a real difference in the repository, not a benchmark claim.
 
-## KDE Plasma 6
+## Differences
 
-DeftOS uses KDE Plasma 6, the current generation of the Plasma desktop. It offers a responsive interface, fine-grained customization of panels, widgets, and window behavior, and a consistent look that matches the DeftOS theme out of the box.
+| Area | CachyOS (base) | DeftOS |
+|---|---|---|
+| Branding | CachyOS identity | DeftOS wallpaper, SDDM theme, colors, logo, `deftos-branding` package |
+| Base packages | Broader default set | Trimmed: non-essential packages such as python, perl, and plymouth removed |
+| Installer | Standard flow | Calamares flow without CPU/GPU selection screens |
+| Mirrors | Stock configuration | Cleaned mirror list with fake entries removed and UTF-8 encoding fixed |
+| Recovery | Standard boot options | Snapper integration with a first-boot init service, plus LTS kernel fallback in GRUB |
 
-## Linux 7.2.10 kernel
+## What stays the same
 
-The kernel is version 7.2.10, configured for responsiveness and throughput. Users who prefer stability can select the LTS kernel from the GRUB menu at any time.
+DeftOS keeps the CachyOS foundation: Arch Linux packaging, CachyOS optimization hooks, and the kernel tuning approach. Software compatibility with Arch repositories is unchanged.
 
-## A minimal base system
+## Who should choose DeftOS
 
-Many distributions ship with a large set of preinstalled tools. DeftOS deliberately keeps the base small. Packages that are not essential to a working desktop were removed, which means a smaller installation, fewer background services, and less to update.
+- Users who want a branded KDE Plasma 6 system with fewer preinstalled packages.
+- Users who want a simpler installer and snapshot-based rollback set up out of the box.
 
-## A simpler installer
+## Who should choose stock CachyOS
 
-The Calamares installer asks only what matters: timezone, keyboard layout, disk partitioning, and user credentials. There are no CPU or GPU selection screens. Drivers and the rest of the system are set up automatically during installation.
-
-## Snapshots and rollback
-
-Snapper creates filesystem snapshots, so a broken update or a misconfigured change can be undone with a single command:
-
-```
-snapper list
-snapper undochange <pre> <post>
-```
-
-## Recovery options
-
-If the system fails to boot after a kernel update, choose the Linux LTS entry in GRUB. If the installed system is unbootable, boot an Arch live ISO, mount the root filesystem, and use `arch-chroot` to repair it.
-
-## Consistent branding
-
-Wallpaper, SDDM theme, system colors, and the logo ship together in the `deftos-branding` package. The installer applies the same branding, so the look is consistent from installation through daily use.
+- Users who need the full default package set or want to keep the upstream branding.
+- Users who prefer to configure drivers and packages manually from the start.
 
 ---
 
