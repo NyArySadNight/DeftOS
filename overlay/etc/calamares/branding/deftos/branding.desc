@@ -1,0 +1,77 @@
+---
+componentName: deftos
+
+# Window configuration
+windowExpanding: normal
+windowWidth: 1024
+windowHeight: 768
+
+# Colors - DeftOS theme
+colors:
+  workspace: "#1a1a1a"
+
+# Font
+fontFamily: "Noto Sans"
+
+# Strings
+strings:
+  - brandName: "DeftOS"
+    productName: "DeftOS"
+    shortProductName: "DeftOS"
+    versionShortString: "1.0"
+    versionedName: "DeftOS 1.0"
+    shortVersion: "1.0"
+    releaseNotesUrl: "https://github.com/NyArySadNight/DeftOS"
+    donateUrl: "https://github.com/NyArySadNight/DeftOS"
+
+# Images
+images:
+  productLogo: "logo.png"
+  productIcon: "logo.png"
+  productWallpaper: "wallpaper.png"
+
+# Slideshow
+slideshow: "show.qml"
+
+# Module configuration - ONLY these modules in sequence
+modules-search: [ local ]
+
+sequence:
+  - show:
+    - welcome
+    - locale
+    - keyboard
+    - partition
+    - users
+    - summary
+  - exec:
+    - partition
+    - mount
+    - pacstrap
+    - shellprocess@shellprocess_branding
+    - machineid
+    - users
+    - locale
+    - keyboard
+    - localecfg
+    - chwd
+    - fstab
+    - grubcfg
+    - bootloader
+    - services-systemd
+    - initcpiocfg
+    - initcpio
+    - networkcfg
+    - umount
+  - show:
+    - finished
+
+# Branding strings
+branding: deftos
+prompt-install: true
+dont-chroot: false
+oem-setup: false
+disable-cancel: false
+disable-cancel-during-exec: false
+hide-back-and-next-during-exec: true
+quit-at-end: false
