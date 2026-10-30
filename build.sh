@@ -16,12 +16,69 @@ for t in unsquashfs mksquashfs xorriso rsync python3 sha256sum sha512sum curl; d
 done
 if [ ! -f "$BASE_ISO" ]; then curl -L -o "$BASE_ISO" "$URL"; fi
 echo "$SHA  $BASE_ISO" | sha256sum -c - || { echo "ISO goc sai ma bam"; exit 1; }
-mountpoint -q "$WORK/iso" && umount "$WORK/iso" || true
+# Go het mount (ke ca mount chroot) TRUOC khi rm -rf, neu khong rm se xoa /dev cua host
+unmount_all() {
+  for m in "$WORK/rootfs/dev" "$WORK/rootfs/sys" "$WORK/rootfs/proc" "$WORK/iso"; do
+    mountpoint -q "$m" && umount -R "$m" || true
+  done
+}
+unmount_all
 rm -rf "$WORK"; mkdir -p "$WORK/iso"
-trap 'mountpoint -q "$WORK/iso" && umount "$WORK/iso" || true' EXIT
+trap unmount_all EXIT
 mount -o loop,ro "$BASE_ISO" "$WORK/iso"
 unsquashfs -f -d "$WORK/rootfs" "$WORK/iso/arch/x86_64/airootfs.sfs" >/dev/null
 umount "$WORK/iso"
+
+# --- Live session: doi tu KDE Plasma sang Cinnamon ---
+# (Truoc day chi pacstrap.conf duoc doi, tuc la he thong cai tren o cung.
+#  Live session boot tu airootfs.sfs nen phai doi o day.)
+R="$WORK/rootfs"
+# Dung cau hinh pacman cua overlay (SigLevel Optional, mirror CachyOS/Arch)
+cp -f overlay/etc/pacman.conf "$R/etc/pacman.conf"
+cp -f overlay/etc/pacman.d/*mirrorlist "$R/etc/pacman.d/"
+rm -f "$R/etc/resolv.conf"; cp /etc/resolv.conf "$R/etc/resolv.conf"
+mount -t proc proc "$R/proc"
+mount --rbind /sys "$R/sys" && mount --make-rslave "$R/sys"
+mount --rbind /dev "$R/dev" && mount --make-rslave "$R/dev"
+
+chroot "$R" pacman -Sy --noconfirm --needed \
+  cinnamon nemo nemo-fileroller lightdm lightdm-gtk-greeter \
+  network-manager-applet noto-fonts pipewire wireplumber pavucontrol
+
+# Go KDE/Plasma/SDDM. Dung -Rns de go ca dependency mo coi. Neu pacman tu choi
+# (vi goi khac con phu thuoc) thi in canh bao, khong bo qua im lang.
+KDE_PKGS=$(chroot "$R" pacman -Qq | grep -E '^(plasma-|kwin|sddm|kde|breeze|kscreen|libkscreen|powerdevil|systemsettings|discover|dolphin|konsole|spectacle|kcalc|kate$|krunner|baloo|xdg-desktop-portal-kde|cachyos-kde|cachyos-plasma)' | tr '\n' ' ' || true)
+echo "Goi KDE se go: ${KDE_PKGS:-<khong co>}"
+if [ -n "$KDE_PKGS" ]; then
+  chroot "$R" pacman -Rns --noconfirm $KDE_PKGS || echo "CANH BAO: pacman khong go duoc KDE (xem log tren)"
+fi
+# Calamares phai con ton tai, neu khong thi ISO vo dung
+chroot "$R" pacman -Q calamares >/dev/null || { echo "LOI: calamares bi go mat"; exit 1; }
+
+# LightDM la display manager; autologin liveuser vao Cinnamon
+rm -f "$R/etc/systemd/system/display-manager.service"
+ln -s /usr/lib/systemd/system/lightdm.service "$R/etc/systemd/system/display-manager.service"
+mkdir -p "$R/etc/lightdm/lightdm.conf.d"
+cat > "$R/etc/lightdm/lightdm.conf.d/50-deftos-live.conf" <<'EOF'
+[Seat:*]
+greeter-session=lightdm-gtk-greeter
+user-session=cinnamon
+autologin-user=liveuser
+autologin-user-timeout=0
+autologin-session=cinnamon
+EOF
+
+# Hinh nen Cinnamon mac dinh (dconf)
+mkdir -p "$R/etc/dconf/profile" "$R/etc/dconf/db/local.d"
+[ -f "$R/etc/dconf/profile/user" ] || printf 'user-db:user\nsystem-db:local\n' > "$R/etc/dconf/profile/user"
+cat > "$R/etc/dconf/db/local.d/00-deftos" <<'EOF'
+[org/cinnamon/desktop/background]
+picture-uri='file:///usr/share/wallpapers/DeftOSCinnamon.jpg'
+picture-options='zoom'
+EOF
+chroot "$R" dconf update || echo "CANH BAO: dconf update that bai"
+
+unmount_all
 rsync -rlptD overlay/ "$WORK/rootfs/"
 # Script trong overlay phai co quyen thuc thi (git/rsync co the lam mat bit x)
 chmod 755 "$WORK/rootfs/usr/local/bin/calamares-online.sh" \
