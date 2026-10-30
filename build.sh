@@ -41,9 +41,13 @@ mount -t proc proc "$R/proc"
 mount --rbind /sys "$R/sys" && mount --make-rslave "$R/sys"
 mount --rbind /dev "$R/dev" && mount --make-rslave "$R/dev"
 
-chroot "$R" pacman -Sy --noconfirm --needed \
+# Rootfs chua co keyring (CI khong chay pacman-key), nen dung config tam SigLevel = Never
+# chi cho buoc cai dat trong chroot. pacman.conf cuoi cung vao ISO van la ban overlay.
+sed -E 's/^SigLevel.*/SigLevel = Never/' overlay/etc/pacman.conf > "$R/etc/pacman-deftos-build.conf"
+chroot "$R" pacman --config /etc/pacman-deftos-build.conf -Sy --noconfirm --needed \
   cinnamon nemo nemo-fileroller lightdm lightdm-gtk-greeter \
   network-manager-applet noto-fonts pipewire wireplumber pavucontrol
+rm -f "$R/etc/pacman-deftos-build.conf"
 
 # Go KDE/Plasma/SDDM. Dung -Rns de go ca dependency mo coi. Neu pacman tu choi
 # (vi goi khac con phu thuoc) thi in canh bao, khong bo qua im lang.
