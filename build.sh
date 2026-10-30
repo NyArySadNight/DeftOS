@@ -43,7 +43,10 @@ mount --rbind /dev "$R/dev" && mount --make-rslave "$R/dev"
 
 # Rootfs chua co keyring (CI khong chay pacman-key), nen dung config tam SigLevel = Never
 # chi cho buoc cai dat trong chroot. pacman.conf cuoi cung vao ISO van la ban overlay.
-sed -E 's/^SigLevel.*/SigLevel = Never/' overlay/etc/pacman.conf > "$R/etc/pacman-deftos-build.conf"
+# Bo han repo [cachyos] (mirror co the khong truy cap duoc tu CI, db tai ve bi hong).
+# Cinnamon/lightdm/nemo deu co trong core/extra nen khong can cachyos o buoc nay.
+sed -E -e '/^\[cachyos\]/,/^$/d' -e 's/^SigLevel.*/SigLevel = Never/' overlay/etc/pacman.conf > "$R/etc/pacman-deftos-build.conf"
+rm -f "$R"/var/lib/pacman/sync/*.db
 chroot "$R" pacman --config /etc/pacman-deftos-build.conf -Sy --noconfirm --needed \
   cinnamon nemo nemo-fileroller lightdm lightdm-gtk-greeter \
   network-manager-applet noto-fonts pipewire wireplumber pavucontrol
