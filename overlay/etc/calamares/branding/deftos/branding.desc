@@ -28,7 +28,7 @@ strings:
 images:
   productLogo: "logo.png"
   productIcon: "logo.png"
-  productWallpaper: "cinnamon-wallpaper.png"
+  productWallpaper: "wallpaper.png"
 
 # Slideshow
 slideshow: "show.qml"
