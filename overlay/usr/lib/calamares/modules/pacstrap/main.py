@@ -94,7 +94,8 @@ def run():
     if libcalamares.utils.get_target_platform() == "handheld":
         base_packages += []
     else:
-        base_packages += ["deftos-kernel-cachyos-bore", "deftos-kernel-cachyos-bore-headers",
+        # Dung kernel CachyOS co that trong repo cachyos (goi [deftos] da bi go, khong con ton tai)
+        base_packages += ["linux-cachyos-bore", "linux-cachyos-bore-headers",
                          "linux-cachyos-lts", "linux-cachyos-lts-headers"]
 
 
