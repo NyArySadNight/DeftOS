@@ -33,5 +33,5 @@ fi
 chroot "$ROOT" systemctl enable deftos-snapper-init.service || echo "WARN: enable deftos-snapper-init failed"
 chroot "$ROOT" systemctl enable btrfs-scrub@-.timer || echo "WARN: enable btrfs-scrub timer failed"
 
-# Dung pacman.conf co [deftos] cho cac buoc cai sau (packages@online)
+# Dung pacman.conf cua live (co [cachyos], khong co [deftos]) cho cac buoc cai sau
 install -Dm644 /etc/pacman.conf "$ROOT/etc/pacman.conf"

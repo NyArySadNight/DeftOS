@@ -94,9 +94,8 @@ def run():
     if libcalamares.utils.get_target_platform() == "handheld":
         base_packages += []
     else:
-        # Dung kernel CachyOS co that trong repo cachyos (goi [deftos] da bi go, khong con ton tai)
-        base_packages += ["linux-cachyos-bore", "linux-cachyos-bore-headers",
-                         "linux-cachyos-lts", "linux-cachyos-lts-headers"]
+        # Tam thoi chi dung 1 kernel CachyOS (bore). Them kernel khac sau.
+        base_packages += ["linux-cachyos-bore", "linux-cachyos-bore-headers"]
 
 
     bootloader = libcalamares.globalstorage.value("packagechooser_bootloader")
@@ -141,7 +140,7 @@ def run():
         if libcalamares.utils.get_target_platform() == "handheld":
             base_packages += []
         else:
-            base_packages += ["linux-cachyos-lts-zfs"]
+            pass  # ZFS kernel module chua ho tro khi chi dung 1 kernel
     elif is_root_on_btrfs:
         libcalamares.utils.debug("Root on BTRFS")
         if bootloader == "limine":

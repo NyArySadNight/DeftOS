@@ -11,24 +11,6 @@
      - cachyos-v4-mirrorlist
      - cachyos-rate-mirrors
      - chwd
-- name: "DeftOS kernels (hidden)"
-  description: "DeftOS kernels to install"
-  hidden: true
-  selected: true
-  critical: true
-  platform: "desktop"
-  packages:
-     - deftos-kernel-cachyos-bore
-     - deftos-kernel-cachyos-bore-headers
-     - linux-cachyos-lts
-     - linux-cachyos-lts-headers
-- name: "DeftOS kernels (hidden/handheld)"
-  description: "DeftOS kernels to install (Handheld)"
-  hidden: true
-  selected: true
-  critical: true
-  platform: "handheld"
-  packages:
 - name: "DeftOS Packages"
   description: "needed DeftOS packages"
   hidden: false

@@ -27,7 +27,9 @@ rsync -rlptD overlay/ "$WORK/rootfs/"
 chmod 755 "$WORK/rootfs/usr/local/bin/calamares-online.sh" \
           "$WORK/rootfs/usr/libexec/deftos/apply-branding.sh" \
           "$WORK/rootfs/usr/share/deftos/hooks/restore-branding.sh" \
-          "$WORK/rootfs/usr/lib/deftos/snapper-init.sh"
+          "$WORK/rootfs/usr/lib/deftos/snapper-init.sh" \
+          "$WORK/rootfs/etc/calamares/scripts/btrfs-installation-snapshot" \
+          "$WORK/rootfs/etc/calamares/scripts/update-mirrorlist"
 # Calamares branding: deftos/ needs the image/QML assets shipped in the base ISO's cachyos/ folder
 BR="$WORK/rootfs/usr/share/calamares/branding"
 [ -d "$BR/cachyos" ] && cp -rn "$BR/cachyos/." "$BR/deftos/"
