@@ -7,16 +7,13 @@
 - Fix: Updated plasma-org.kde.plasma.desktop-appletsrc Image= path to deftoswall.png
 - Status: ✅ Fixed in overlay
 
-### Branding Package
-- Created: deftos-branding-1.0-1 (logo + wallpaper)
-- Added to: [deftos] pacman repo
-- Status: ✅ Built & pushed
+### Branding Package (outdated)
+- The `deftos-branding` package and the `[deftos]` repo no longer exist. Branding is now copied from `overlay/` by `build.sh` and `apply-branding.sh`.
+- The old `pkg/` folder was removed.
 
-### Kernel
-- Using: deftos-kernel-cachyos-bore-7.2.10-1
-- CONFIG_SCHED_BORE=y verified
-- Fallback: linux-cachyos-lts
-- Status: ✅ Installed
+### Kernel (current)
+- Only `linux-cachyos-bore` (with headers) is installed. The `deftos-kernel-*` package and the LTS fallback were removed.
+- To add kernels later, edit `base_packages` in `overlay/usr/lib/calamares/modules/pacstrap/main.py`.
 
 ## Build Status
 - ISO: deftos-build.iso (Run latest)
