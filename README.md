@@ -12,19 +12,20 @@ DeftOS starts from the CachyOS live ISO and makes a set of deliberate changes. T
 |---|---|---|
 | Branding | CachyOS identity | DeftOS wallpaper, logo, colors, SDDM theme, `deftos-branding` package files |
 | Base packages | Broader default set | Trimmed: non-essential packages such as python, perl, and plymouth removed |
-| Installer | Standard flow with CPU, GPU, desktop and netinstall pages | Calamares sequence in `overlay/usr/share/calamares/settings_online.conf`: welcome, locale, keyboard, partition, users, summary. No CPU, GPU, bootloader, desktop or netinstall pages |
-| Kernel | CachyOS kernel set | Installs `linux-cachyos-bore` and `linux-cachyos-lts` (with headers). GRUB boots `/boot/vmlinuz-linux-cachyos-bore` by default |
+| Installer | Standard flow with CPU, GPU, desktop and netinstall pages | Calamares sequence in `overlay/usr/share/calamares/settings_online.conf` (the launcher copies this file to `/etc/calamares/settings.conf`). Pages: welcome, locale, keyboard, bootloader, partition, CPU, GPU, desktop, netinstall, users, summary |
+| Kernel | CachyOS kernel set | Only `linux-cachyos-bore` (with headers) is installed for now. Stock `linux` and `-lts` are not installed. GRUB boots `/boot/vmlinuz-linux-cachyos-bore`. Add more kernels later in `main.py` (`base_packages`) |
 | Mirrors | Stock configuration | Cleaned mirror list with fake entries removed and UTF-8 encoding fixed |
-| Recovery | Standard boot options | Snapper integration with a first-boot init service, plus LTS kernel fallback in GRUB |
+| Recovery | Standard boot options | Snapper integration with a first-boot init service. No LTS kernel fallback while only the bore kernel is installed |
 
 The CachyOS installer was used only as a reference for the module pipeline. Its sequence is not applied to DeftOS.
 
 ## Known issues
 
 - The live installer launcher (`overlay/usr/local/bin/calamares-online.sh`) can exit with code 1 right after it starts. The cause is not yet confirmed. The launcher writes its log to `/home/liveuser/cachy-install.log` in the live session.
-- `packagechooser_*.conf` module configs are not in this repository. They come from the CachyOS base ISO, so they can change without notice.
-- `pkg/deftos-branding/` holds older copies of some module configs. `build.sh` does not use them.
-- `apply-branding.sh` copies `/etc/pacman.conf` into the installed system. That file no longer contains a `[deftos]` repository, so any package that only exists in that repository will fail to install.
+- Some Calamares module configs (`shellprocess_*.conf`, `packagechooser_bootloader.conf`, `partition.conf`, etc.) and some scripts listed in `pacstrap.conf` (`/etc/calamares/scripts/enable-ufw`, `bootloader-post-setup`, `shell-setup`, `/usr/local/bin/dmcheck`, `remove-nvidia`, `/etc/mkinitcpio.conf`) are not in this repository. They come from the CachyOS base ISO. This is not verified yet, so check them against the base ISO.
+- `netinstall.yaml` installs `cachyos-hello` (DeftOS Packages group), but `apply-branding.sh` removes it from the installed system. Decide whether to keep it.
+- `apply-branding.sh` copies `/etc/pacman.conf` from the live system into the installed system. That file has `[cachyos]` but no `[deftos]` repository, so do not add packages that exist only in `[deftos]`.
+- The `Failed to run pacman` error in pacstrap is not yet explained. Check `/home/liveuser/.cache/calamares/session.log` on the live system.
 
 ## What stays the same
 
