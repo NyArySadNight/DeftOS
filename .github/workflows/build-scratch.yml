@@ -1,6 +1,9 @@
 name: Build DeftOS ISO (archiso scratch)
 
 on:
+  push:
+    branches:
+      - scratch-archiso
   workflow_dispatch:
 
 jobs:
